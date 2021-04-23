@@ -33,6 +33,6 @@ public class PostVote {
   private Instant time;
 
   @Column(name = "value", nullable = false, columnDefinition = "TINYINT")
-  private boolean value;
+  private boolean value;  // лайк или дизлайк: 1 или -1 ---> 0 true = 1 = like false = 0 = dislike
 
 }

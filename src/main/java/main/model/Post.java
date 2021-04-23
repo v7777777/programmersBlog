@@ -24,6 +24,7 @@ import main.model.enums.ModerationStatusCode;
 @Data
 public class Post {
 
+  @Column(name = "id")
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private int id;
@@ -64,8 +65,8 @@ public class Post {
   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<PostComment> postComments;
 
-  // @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-  // private List<Tag2post> tag2posts;
+   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+   private List<Tag2post> tag2posts;
 
 
 }
