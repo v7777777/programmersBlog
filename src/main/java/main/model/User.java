@@ -15,7 +15,7 @@ import lombok.Data;
 @Entity
 @Table(name = "users")
 @Data
-public class Users {
+public class User {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private int id;
@@ -39,10 +39,10 @@ public class Users {
 
   private String photo;
 
-  @OneToMany(mappedBy = "users", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<PostVotes> postVotes;  // удалять лайки если человек удалился?? нет тк при удалении запись останется
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<PostVote> postVotes;  // удалять лайки если человек удалился?? нет тк при удалении запись останется
 
-  @OneToMany(mappedBy = "users", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<PostComments> postComments;
+  @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<PostComment> postComments;
 
 }

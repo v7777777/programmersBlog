@@ -8,21 +8,21 @@ import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
-import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import lombok.Data;
+import main.model.enums.ModerationStatusCode;
 
 @Entity
 @Table(name = "posts")
 @Data
-public class Posts {
+public class Post {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,11 +37,11 @@ public class Posts {
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "moderator_id", referencedColumnName = "id")
-  private Users moderatorId; // ID пользователя-модератора, принявшего решение
+  private User moderator; // ID пользователя-модератора, принявшего решение
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
-  private Users userId;
+  private User user;
 
   @Column(name = "time", nullable = false)
   private Instant time;
@@ -55,14 +55,17 @@ public class Posts {
   @Column(name = "view_count", nullable = false)
   private int viewCount;  // количество просмотров поста
 
-  @OneToMany(mappedBy = "posts", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<Tag2post> tag2post;
+  @ManyToMany(mappedBy = "posts", cascade = CascadeType.ALL)
+  private List<Tag> tags;
 
-  @OneToMany(mappedBy = "posts", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<PostVotes> postVotes;
+  @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<PostVote> postVotes;
 
-  @OneToMany(mappedBy = "posts", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<PostComments> postComments;
+  @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<PostComment> postComments;
+
+  // @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+  // private List<Tag2post> tag2posts;
 
 
 }

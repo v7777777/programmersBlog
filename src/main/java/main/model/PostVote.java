@@ -15,7 +15,7 @@ import lombok.Data;
 @Entity
 @Table(name = "post_votes")  // like 1 or dislike -1
 @Data
-public class PostVotes {
+public class PostVote {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,11 +23,11 @@ public class PostVotes {
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
-  private Users users;
+  private User user;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "post_id", referencedColumnName = "id", nullable = false)
-  private Posts posts;
+  private Post post;
 
   @Column(name = "time", nullable = false)
   private Instant time;
