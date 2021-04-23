@@ -1,10 +1,10 @@
-package main.model;
+package main.model.enums;
 
 import java.util.stream.Stream;
 import javax.persistence.Column;
 
 
-public enum GlobalSettingsValues {
+public enum GlobalSettingValue {
 
   MULTIUSER_MODE("Многопользовательский режим"),
   POST_PREMODERATION( "Премодерация постов"),
@@ -21,14 +21,14 @@ public enum GlobalSettingsValues {
   @Column(name = "name", nullable = false)
   private String name; // название имя настройки
 
-  GlobalSettingsValues(String name) {
+  GlobalSettingValue(String name) {
 
     this.name = name;
   }
 
-  public static GlobalSettingsValues of(String name) {  // получить перем emum по строке
-    return Stream.of(GlobalSettingsValues.values())
-        .filter(p -> p.getName() == name)
+  public static GlobalSettingValue of(String name) {  // получить перем emum по строке
+    return Stream.of(GlobalSettingValue.values())
+        .filter(p -> p.getName().equals(name))
         .findFirst()
         .orElseThrow(IllegalArgumentException::new);
   }

@@ -1,6 +1,5 @@
 package main.model;
 
-import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -13,11 +12,13 @@ import javax.persistence.PrePersist;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import lombok.Data;
+import main.model.enums.GlobalSettingValue;
+import main.model.enums.SettingValue;
 
 @Entity
 @Table(name = "global_settings")
 @Data
-public class GlobalSettings {
+public class GlobalSetting {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,7 +29,7 @@ public class GlobalSettings {
      // "enum('MULTIUSER_MOD','POST_PREMODERATION','STATISTICS_IS_PUBLIC')", nullable = false)
 
   @Transient // field is not to be serialized
-  GlobalSettingsValues globalSettingsValues;
+      GlobalSettingValue globalSettingValue;
 
   @Column(name = "code", nullable = false)
   String code;
@@ -37,13 +38,13 @@ public class GlobalSettings {
 
   @PostLoad  //@PostLoad — вызывается после загрузки данных сущности из БД.
   void fillTransient() {
-    this.globalSettingsValues = GlobalSettingsValues.of(name);
+    this.globalSettingValue = GlobalSettingValue.of(name);
   }
 
   @PrePersist // @PrePersist — вызывается как только инициирован вызов persist() и исполняется перед остальными действиями.
   void fillPersistent() {
-    this.name = globalSettingsValues.getName();
-    this.code = globalSettingsValues.toString();
+    this.name = globalSettingValue.getName();
+    this.code = globalSettingValue.toString();
   }
 
   @Enumerated(EnumType.STRING)

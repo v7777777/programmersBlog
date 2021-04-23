@@ -12,7 +12,7 @@ import lombok.Data;
 @Entity
 @Table(name = "captcha_codes")
 @Data
-public class CaptchaCodes {
+public class CaptchaCode {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
