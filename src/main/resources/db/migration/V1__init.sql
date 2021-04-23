@@ -75,7 +75,8 @@ primary key (id)
 );
 
 create table tag2post (
+id integer not null auto_increment,
 post_id integer not null,
 tag_id integer not null,
-primary key (`post_id`,`tag_id`)
+primary key (id)
 );

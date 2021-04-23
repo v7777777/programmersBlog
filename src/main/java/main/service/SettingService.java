@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class SettingsService {
+public class SettingService {
 
   private final GlobalSettingRepository settingsRepository;
 

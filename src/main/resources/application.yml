@@ -4,9 +4,18 @@ spring:
     username: root
     password: 1234567
   jpa:
-    show-sql: false
+    show-sql: true
     hibernate:
-      ddl-auto: create
+      ddl-auto: validate
     properties:
      hibernate:
         dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+
+
+blog:
+  title: DevPub
+  subtitle: Рассказы разработчиков
+  phone: +7 903 666-44-55
+  email: mail@mail.ru
+  copyright: Дмитрий Сергеев
+  copyrightFrom: 2005

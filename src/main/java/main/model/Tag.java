@@ -11,6 +11,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import lombok.Data;
 
@@ -35,8 +36,8 @@ public class Tag {
   )
   private List<Post> posts;
 
-  // @OneToMany(mappedBy = "tag", cascade = CascadeType.ALL, orphanRemoval = true)
-  //private List<Tag2post> tag2posts;
+   @OneToMany(mappedBy = "tag", cascade = CascadeType.ALL, orphanRemoval = true)
+   private List<Tag2post> tag2posts;
 
 
 }
