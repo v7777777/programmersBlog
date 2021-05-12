@@ -50,4 +50,6 @@ public class GlobalSetting {
   @Enumerated(EnumType.STRING)
   @Column(name = "value",columnDefinition = "enum('YES','NO')", nullable = false)
   private SettingValue value;
+
+
 }
