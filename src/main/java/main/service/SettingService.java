@@ -1,5 +1,6 @@
 package main.service;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import main.data.response.SettingsResponse;
 import main.model.GlobalSetting;
@@ -24,9 +25,11 @@ public class SettingService {
 
   public SettingsResponse getSettings() {
 
-    GlobalSetting multiuserMode = settingsRepository.findByCode("MULTIUSER_MODE");
-    GlobalSetting postPremoderation = settingsRepository.findByCode("POST_PREMODERATION");
-    GlobalSetting statisticsIsPublic = settingsRepository.findByCode("STATISTICS_IS_PUBLIC");
+    List<GlobalSetting> allSettings =  settingsRepository.findAll();
+
+    GlobalSetting multiuserMode = allSettings.stream().filter(gs -> gs.getCode().equals("MULTIUSER_MODE")).findFirst().get();
+    GlobalSetting postPremoderation = allSettings.stream().filter(gs -> gs.getCode().equals("POST_PREMODERATION")).findFirst().get();
+    GlobalSetting statisticsIsPublic = allSettings.stream().filter(gs -> gs.getCode().equals("STATISTICS_IS_PUBLIC")).findFirst().get();
 
     SettingsResponse settingsResponse = new SettingsResponse();
 

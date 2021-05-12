@@ -1,16 +1,24 @@
 package main.repository;
 
+import java.util.List;
+import java.util.Optional;
+import main.data.dtos.DateAmountView;
 import main.model.Post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 
 public interface PostRepository extends CrudRepository<Post, Integer> {
 
   // Должны выводиться только активные (поле is_active в таблице posts равно 1), утверждённые
   //модератором (поле moderation_status равно ACCEPTED) посты с датой публикации не позднее
   //текущего момента (движок должен позволять откладывать публикацию).
+  @Query(nativeQuery = true, value =
+      "select * from posts "
+          + "where posts.is_active = 1 and posts.moderation_status = 'accepted' and posts.time <= NOW() and id = :id")
+ Optional<Post> findActivePostById(@Param("id") int id);
 
   @Query(nativeQuery = true, value =
       "select count(*) from posts where is_active = 1 && moderation_status = 'accepted' && time <= NOW()")
@@ -43,5 +51,40 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
           + "order by post_votes_likes DESC, post_votes_dislikes ASC",
       countQuery = "select count(*) from posts where is_active = 1 && moderation_status = 'accepted' && time <= NOW()")
   Page<Post> findAllByLikesAmount(Pageable pageable);
+
+  @Query(nativeQuery = true, value =
+      "select posts.* from posts join users on users.id = posts.user_id where posts.is_active = 1 && posts.moderation_status = 'accepted' && posts.time <= NOW() "
+          + "&& (posts.title like :query OR posts.text like :query OR users.name like :query) order by posts.time desc"
+      , countQuery =
+      "select count(posts.id) from posts join users on users.id = posts.user_id where posts.is_active = 1 && posts.moderation_status = 'accepted' && posts.time <= NOW() "
+          + "&& (posts.title like :query OR posts.text like :query OR users.name like :query)")
+  Page<Post> findByTextOrTitle(@Param("query") String query, Pageable pageable);
+
+
+  @Query(nativeQuery = true,
+      value = "select date(p.time) as time , count(date(p.time)) as count from posts as p "
+          + "where p.is_active = 1 && p.moderation_status = 'accepted' && p.time <= NOW() && EXTRACT( YEAR FROM p.time) = :year "
+          + "group by date(p.time) order by date(p.time) desc")
+  List<DateAmountView> getStatisticsPostsFromYear(@Param("year") int year);
+
+
+  @Query(nativeQuery = true,
+      value = "select EXTRACT(YEAR FROM time) from posts "
+          + "where is_active = 1 && moderation_status = 'accepted' && time <= NOW() group by EXTRACT(YEAR FROM time)")
+  List<Integer> getYearsWithActivePosts();
+
+  @Query(nativeQuery = true, value =
+      "select * from posts where is_active = 1 && moderation_status = 'accepted' && time <= NOW() && "
+          + "date(time) = :date",
+      countQuery = "select count(*) from posts where is_active = 1 && moderation_status = 'accepted' && time <= NOW() && date(time) = :date")
+  Page<Post> findAllActivePostsByDate(Pageable pageable, @Param("date") String date);
+
+  @Query(nativeQuery = true, value =
+      "select * from posts join tag2post on tag2post.post_id=posts.id join tags on tags.id=tag2post.tag_id "
+          + "where is_active = 1 && moderation_status = 'accepted' && time <= NOW() && tags.name = :tag order by posts.time desc",
+      countQuery =
+          "select count(*) from posts join tag2post on tag2post.post_id=posts.id join tags on tags.id=tag2post.tag_id "
+              + "where is_active = 1 && moderation_status = 'accepted' && time <= NOW() && tags.name = :tag")
+  Page<Post> findAllActivePostsByTag(Pageable pageable, @Param("tag") String tag);
 
 }

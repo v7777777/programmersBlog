@@ -1,18 +1,25 @@
 package main.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import main.data.response.listResponses.ListPostResponse;
+import main.data.dtos.DateAmountView;
+import main.data.response.CalendarResponse;
+import main.data.response.DetailedPostResponse;
 import main.data.response.PostResponse;
-import main.data.response.UserPostResponse;
+import main.data.response.listResponses.ListPostResponse;
 import main.model.Post;
 import main.repository.PostRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -33,69 +40,19 @@ public class PostService {
 
       Page<Post> posts = postsRepository.findAllActive(pageable);
 
-      posts.forEach(p -> {
-        {
-          PostResponse postResponse = new PostResponse();
-          UserPostResponse userResponse = new UserPostResponse();
-          userResponse.setId(p.getUser().getId());
-          userResponse.setName(p.getUser().getName());
-
-          String announce = getAnnounce(p.getText());
-          int likeCount = calculateLikes(p);
-          int dislikeCount = calculateDislikes(p);
-
-          postResponse.setId(p.getId());
-          postResponse.setTimestamp(p.getTime().getEpochSecond());
-          postResponse.setUser(userResponse);
-          postResponse.setTitle(p.getTitle());
-          postResponse.setAnnounce(announce);
-          postResponse.setLikeCount(likeCount);
-          postResponse.setDislikeCount(dislikeCount);
-          postResponse.setViewCount(p.getViewCount());
-
-          postsResponse.add(postResponse);
-
-
-        }
-      });
+      posts.forEach(p -> postsResponse.add(new PostResponse(p)));
 
       listPostResponse.setCount(posts.getTotalElements());
 
-    }
-    else if (mode.equals("popular")) {
+    } else if (mode.equals("popular")) {
       pageable = PageRequest.of(page, limit);
 
       Page<Post> posts = postsRepository.findAllByCommentsAmount(pageable);
 
-      posts.forEach(p -> {
-        {
-          PostResponse postResponse = new PostResponse();
-          UserPostResponse userResponse = new UserPostResponse();
-          userResponse.setId(p.getUser().getId());
-          userResponse.setName(p.getUser().getName());
-
-          String announce = getAnnounce(p.getText());
-          int likeCount = calculateLikes(p);
-          int dislikeCount = calculateDislikes(p);
-
-          postResponse.setId(p.getId());
-          postResponse.setTimestamp(p.getTime().getEpochSecond());
-          postResponse.setUser(userResponse);
-          postResponse.setTitle(p.getTitle());
-          postResponse.setAnnounce(announce);
-          postResponse.setLikeCount(likeCount);
-          postResponse.setDislikeCount(dislikeCount);
-          postResponse.setViewCount(p.getViewCount());
-
-          postsResponse.add(postResponse);
-
-
-        }
-      });
+      posts.forEach(p -> postsResponse.add(new PostResponse(p)));
 
       listPostResponse.setCount(posts.getTotalElements());
-    }
-    else if (mode.equals("best")) {
+    } else if (mode.equals("best")) {
 
       pageable = PageRequest.of(page, limit);
 
@@ -103,64 +60,15 @@ public class PostService {
 
       listPostResponse.setCount(posts.getTotalElements()); //
 
-      posts.forEach(p -> {
-        {
-          PostResponse postResponse = new PostResponse();
-          UserPostResponse userResponse = new UserPostResponse();
-          userResponse.setId(p.getUser().getId());
-          userResponse.setName(p.getUser().getName());
+      posts.forEach(p -> postsResponse.add(new PostResponse(p)));
 
-          String announce = getAnnounce(p.getText());
-          int likeCount = calculateLikes(p);
-          int dislikeCount = calculateDislikes(p);
-
-          postResponse.setId(p.getId());
-          postResponse.setTimestamp(p.getTime().getEpochSecond());
-          postResponse.setUser(userResponse);
-          postResponse.setTitle(p.getTitle());
-          postResponse.setAnnounce(announce);
-          postResponse.setLikeCount(likeCount);
-          postResponse.setDislikeCount(dislikeCount);
-          postResponse.setViewCount(p.getViewCount());
-
-          postsResponse.add(postResponse);
-
-
-        }
-      });
-
-    }
-    else if (mode.equals("early")) {
+    } else if (mode.equals("early")) {
 
       pageable = PageRequest.of(page, limit, Sort.by("time").ascending());
 
       Page<Post> posts = postsRepository.findAllActive(pageable);
 
-      posts.forEach(p -> {
-        {
-          PostResponse postResponse = new PostResponse();
-          UserPostResponse userResponse = new UserPostResponse();
-          userResponse.setId(p.getUser().getId());
-          userResponse.setName(p.getUser().getName());
-
-          String announce = getAnnounce(p.getText());
-          int likeCount = calculateLikes(p);
-          int dislikeCount = calculateDislikes(p);
-
-          postResponse.setId(p.getId());
-          postResponse.setTimestamp(p.getTime().getEpochSecond());
-          postResponse.setUser(userResponse);
-          postResponse.setTitle(p.getTitle());
-          postResponse.setAnnounce(announce);
-          postResponse.setLikeCount(likeCount);
-          postResponse.setDislikeCount(dislikeCount);
-          postResponse.setViewCount(p.getViewCount());
-
-          postsResponse.add(postResponse);
-
-
-        }
-      });
+      posts.forEach(p -> postsResponse.add(new PostResponse(p)));
 
       listPostResponse.setCount(posts.getTotalElements());
     }
@@ -168,31 +76,135 @@ public class PostService {
     return listPostResponse;
   }
 
-  // true = 1 = like false = 0 = dislike
+  public ListPostResponse searchPosts(int offset, int limit, String query) {
 
-  private int calculateDislikes(Post p) {
+    Pageable pageable;
+    int page = offset / limit;
 
-    return (int) p.getPostVotes().stream().filter(vote -> vote.isValue() == false).count();
-  }
+    List<PostResponse> postsResponse = new ArrayList<>();
+    ListPostResponse listPostResponse = new ListPostResponse(postsResponse);
 
-  private int calculateLikes(Post p) {
+    //случае, если запрос
+    //пустой или содержит только пробелы, метод должен выводить все посты (запрос GET /api/post c
+    //параметров mode=recent)
 
-    return (int) p.getPostVotes().stream().filter(vote -> vote.isValue() == true).count();
-  }
+    if (query.equals("recent") || query.matches("\\s*")) {
 
-  private String getAnnounce(String postText) {
+      pageable = PageRequest.of(page, limit, Sort.by("time").descending());
 
-    // длина не более 150 символов, все HTML теги должны быть удалены
-    //конце полученной строки добавить троеточие ...
+      Page<Post> posts = postsRepository.findAllActive(pageable);
 
-    String shortenString = postText.replace("\\<.*?>", "");
+      posts.forEach(p -> postsResponse.add(new PostResponse(p)));
 
-    if (shortenString.length() > 150) {
-      shortenString = shortenString.substring(0, 150) + "...";
+      listPostResponse.setCount(posts.getTotalElements());
+    } else {
+
+      pageable = PageRequest.of(page, limit);
+      query = "%" + query + "%";
+      Page<Post> posts = postsRepository.findByTextOrTitle(query, pageable);
+      posts.forEach(p -> postsResponse.add(new PostResponse(p)));
+      listPostResponse.setCount(posts.getTotalElements());
     }
 
-    return shortenString;
+    return listPostResponse;
+  }
+
+  public CalendarResponse calendar(String year) {
+
+    List<Integer> yearsResponse = postsRepository.getYearsWithActivePosts();
+
+    CalendarResponse calendarResponse = new CalendarResponse();
+
+    HashMap<LocalDate, Integer> postsResponse = new HashMap<>();
+
+    int currentYear;
+
+    //если не передан - возвращать за текущий год
+
+    if (year.equals(null)) {
+
+      currentYear = LocalDate.now().getYear();
+    } else {
+      currentYear = Integer.parseInt(year);
+    }
+
+    List<DateAmountView> result = postsRepository.getStatisticsPostsFromYear(currentYear);
+
+    result.forEach(r -> postsResponse.put(r.getTime(), r.getCount()));
+
+    calendarResponse.setPosts(postsResponse);
+    calendarResponse.setYears(yearsResponse);
+
+    return calendarResponse;
+  }
+
+  public ListPostResponse getPostsByDate(int offset, int limit, String date) {
+
+    // date - дата в формате "2019-10-15"
+
+    int page = offset / limit;
+    Pageable pageable = PageRequest.of(page, limit, Sort.by("time").descending());
+
+    List<PostResponse> postsResponse = new ArrayList<>();
+    ListPostResponse listPostResponse = new ListPostResponse(postsResponse);
+
+    Page<Post> postsByDate = postsRepository.findAllActivePostsByDate(pageable, date);
+
+    postsByDate.forEach(p -> postsResponse.add(new PostResponse(p)));
+
+    listPostResponse.setCount(postsByDate.getTotalElements());
+
+    return listPostResponse;
 
   }
+
+  public ListPostResponse getPostsByTag(int offset, int limit, String tag) {
+
+    // date - дата в формате "2019-10-15"
+
+    int page = offset / limit;
+    Pageable pageable = PageRequest.of(page, limit);
+    ;
+    List<PostResponse> postsResponse = new ArrayList<>();
+    ListPostResponse listPostResponse = new ListPostResponse(postsResponse);
+
+    Page<Post> postsByTag = postsRepository.findAllActivePostsByTag(pageable, tag);
+
+    postsByTag.forEach(p -> postsResponse.add(new PostResponse(p)));
+
+    listPostResponse.setCount(postsByTag.getTotalElements());
+
+    return listPostResponse;
+
+  }
+
+  public DetailedPostResponse getPostById(int id) {
+
+    Optional<Post> postOptional = postsRepository.findActivePostById(id);
+
+    if (postOptional.isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "entity not found");
+    }
+
+    Post post = postOptional.get();
+
+    //При успешном запросе необходимо увеличивать количество просмотров поста на 1 (поле view_count),
+    //кроме случаев:
+    //Если модератор авторизован, то не считаем его просмотры вообще
+    //Если автор авторизован, то не считаем просмотры своих же публикаций
+    // ---------- ДОПИСАТЬ!!!
+    // --------------- ЕСЛИ НЕ (проверка автор поста = id авторизованного пользователя ИЛИ авторизован модератор)  if(!)
+
+    post.setViewCount(post.getViewCount() + 1);
+
+    postsRepository.save(post);
+
+    DetailedPostResponse detailedPostResponse = new DetailedPostResponse(post);
+
+    return detailedPostResponse;
+  }
+
+  // true = 1 = like false = 0 = dislike
+
 
 }
