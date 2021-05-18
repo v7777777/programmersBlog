@@ -2,20 +2,29 @@ package main.service;
 
 import com.github.cage.Cage;
 import com.github.cage.GCage;
+import java.security.Principal;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import main.data.request.LoginRequest;
 import main.data.request.RegistrationRequest;
 import main.data.response.CaptchaResponse;
+import main.data.response.LoginResponse;
 import main.data.response.RegistrationResponse;
 import main.data.response.RegistrationResponseErrors;
 import main.model.CaptchaCode;
 import main.model.User;
 import main.repository.CaptchaCodeRepository;
+import main.repository.PostRepository;
 import main.repository.UserRepository;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,6 +33,8 @@ public class AuthService {
 
   private final CaptchaCodeRepository captchaCodeRepository;
   private final UserRepository userRepository;
+  private final AuthenticationManager authenticationManager;
+  private final PostRepository postRepository;
 
   @Value("${delete.expiredCaptcha}")
   public String deleteExpiredCaptchaTime;
@@ -45,7 +56,8 @@ public class AuthService {
     CaptchaCode captchaCode = new CaptchaCode();
 
     Cage cage = new GCage();
-    String token = cage.getTokenGenerator().next();  // token generator to produce strings for the image
+    String token = cage.getTokenGenerator()
+        .next();  // token generator to produce strings for the image
     byte[] imageByte = cage.draw(token); // Generate an image and return it in a byte array.
 
     String encodedString = Base64.getEncoder().encodeToString(imageByte);
@@ -148,5 +160,42 @@ public class AuthService {
     return registrationResponse;
 
 
+  }
+
+  public LoginResponse login(LoginRequest loginRequest) {
+
+    Authentication auth = authenticationManager
+        .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getEmail(),
+            loginRequest.getPassword()));
+
+    SecurityContextHolder.getContext().setAuthentication(auth);
+
+    org.springframework.security.core.userdetails.User user = (org.springframework.security.core.userdetails.User) auth
+        .getPrincipal();
+
+    return getLoginResponse(user.getUsername());
+
+  }
+
+  public LoginResponse check(Principal principal) {
+
+    if (principal == null) {
+      return new LoginResponse(false);
+    }
+
+    return getLoginResponse(principal.getName());
+  }
+
+  private LoginResponse getLoginResponse(String email) {
+
+    User currentUser = userRepository.findByEmail(email)
+        .orElseThrow(() -> new UsernameNotFoundException(email));
+
+    int newPostsCount = currentUser.isModerator() ? postRepository.countNewPosts() : 0;
+
+    LoginResponse loginResponse = new LoginResponse(currentUser, newPostsCount);
+    loginResponse.setResult(true);
+
+    return loginResponse;
   }
 }

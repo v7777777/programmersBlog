@@ -13,11 +13,16 @@ import main.data.response.PostResponse;
 import main.data.response.listResponses.ListPostResponse;
 import main.model.Post;
 import main.repository.PostRepository;
+import main.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -26,6 +31,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class PostService {
 
   private final PostRepository postsRepository;
+  private final UserRepository userRepository;
 
   public ListPostResponse getPosts(int offset, int limit, String mode) {
 
@@ -121,7 +127,7 @@ public class PostService {
 
     //если не передан - возвращать за текущий год
 
-    if (year.equals(null)) {
+    if (year==null) {
 
       currentYear = LocalDate.now().getYear();
     } else {
@@ -188,20 +194,75 @@ public class PostService {
 
     Post post = postOptional.get();
 
-    //При успешном запросе необходимо увеличивать количество просмотров поста на 1 (поле view_count),
-    //кроме случаев:
-    //Если модератор авторизован, то не считаем его просмотры вообще
-    //Если автор авторизован, то не считаем просмотры своих же публикаций
-    // ---------- ДОПИСАТЬ!!!
-    // --------------- ЕСЛИ НЕ (проверка автор поста = id авторизованного пользователя ИЛИ авторизован модератор)  if(!)
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-    post.setViewCount(post.getViewCount() + 1);
+// увеличение просмотров поста
+
+    if (!(auth instanceof AnonymousAuthenticationToken)) {
+
+      String principal = ((org.springframework.security.core.userdetails.User) auth.getPrincipal())
+          .getUsername();
+
+      boolean isModerator = userRepository.findByEmail(principal).get().isModerator();
+
+      //Если модератор авторизован, то не считаем его просмотры вообще
+      //Если автор авторизован, то не считаем просмотры своих же публикаций
+
+      if (!post.getUser().getEmail().equals(principal) && isModerator != true) {
+        post.setViewCount(post.getViewCount() + 1);
+      }
+    } else {
+      post.setViewCount(post.getViewCount() + 1);
+    }  // увеличиваем просмотры если пользователь не авторизован ?????
 
     postsRepository.save(post);
 
     DetailedPostResponse detailedPostResponse = new DetailedPostResponse(post);
 
     return detailedPostResponse;
+  }
+
+  public ListPostResponse getMyPosts(int offset, int limit, String status) {
+
+    int page = offset / limit;
+    Pageable pageable = PageRequest.of(page, limit);
+
+    List<PostResponse> postsResponse = new ArrayList<>();
+    ListPostResponse listPostResponse = new ListPostResponse(postsResponse);
+
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+    if (auth instanceof AnonymousAuthenticationToken) {
+
+      throw new AuthenticationCredentialsNotFoundException("please authorize");
+
+    }
+
+    int myId = userRepository.findByEmail(
+        ((org.springframework.security.core.userdetails.User) SecurityContextHolder.getContext()
+            .getAuthentication().getPrincipal()).getUsername()).get().getId();
+
+    if (status.equals("published")) {
+      Page<Post> myPublishedPosts = postsRepository.findPublishedPostsById(myId, pageable);
+      myPublishedPosts.forEach(p -> postsResponse.add(new PostResponse(p)));
+      listPostResponse.setCount(myPublishedPosts.getTotalElements());
+    }
+    else if (status.equals("inactive")) {
+      Page<Post> myInactivePosts = postsRepository.findInactivePostsById(myId, pageable);
+      myInactivePosts.forEach(p -> postsResponse.add(new PostResponse(p)));
+      listPostResponse.setCount(myInactivePosts.getTotalElements());
+    }
+    else if (status.equals("pending")) {
+      Page<Post> myPendingPosts = postsRepository.findPendingPostsById(myId, pageable);
+      myPendingPosts.forEach(p -> postsResponse.add(new PostResponse(p)));
+      listPostResponse.setCount(myPendingPosts.getTotalElements());
+    }
+    else if (status.equals("declined")) {
+      Page<Post> myDeclinedPosts = postsRepository.findDeclinedPostsById(myId, pageable);
+      myDeclinedPosts.forEach(p -> postsResponse.add(new PostResponse(p)));
+      listPostResponse.setCount(myDeclinedPosts.getTotalElements());
+    }
+    return listPostResponse;
   }
 
   // true = 1 = like false = 0 = dislike

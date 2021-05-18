@@ -18,11 +18,15 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
   @Query(nativeQuery = true, value =
       "select * from posts "
           + "where posts.is_active = 1 and posts.moderation_status = 'accepted' and posts.time <= NOW() and id = :id")
- Optional<Post> findActivePostById(@Param("id") int id);
+  Optional<Post> findActivePostById(@Param("id") int id);
 
   @Query(nativeQuery = true, value =
       "select count(*) from posts where is_active = 1 && moderation_status = 'accepted' && time <= NOW()")
   int countAllActivePosts();
+
+  @Query(nativeQuery = true, value =
+      "select count(*) from posts where is_active = 1 && moderation_status = 'new' && time <= NOW()")
+  int countNewPosts();
 
 
   @Query(nativeQuery = true, value =
@@ -86,5 +90,35 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
           "select count(*) from posts join tag2post on tag2post.post_id=posts.id join tags on tags.id=tag2post.tag_id "
               + "where is_active = 1 && moderation_status = 'accepted' && time <= NOW() && tags.name = :tag")
   Page<Post> findAllActivePostsByTag(Pageable pageable, @Param("tag") String tag);
+
+  @Query(nativeQuery = true, value =
+      "select posts.* from posts join users on users.id = posts.user_id where posts.is_active = 1 && posts.moderation_status = 'accepted' "
+    + "&& posts.time <= NOW() && users.id = :id  order by posts.time desc"
+      , countQuery =
+      "select count(posts.id) from posts join users on users.id = posts.user_id where "
+          + "posts.is_active = 1 && posts.moderation_status = 'accepted' && posts.time <= NOW() && users.id = :id ")
+  Page<Post> findPublishedPostsById(@Param("id") int id, Pageable pageable);
+
+  @Query(nativeQuery = true, value =
+      "select posts.* from posts join users on users.id = posts.user_id where posts.is_active = 0 && users.id = :id order by posts.time desc"
+      , countQuery =
+      "select count(posts.id) from posts join users on users.id = posts.user_id where posts.is_active = 0 && users.id = :id ")
+  Page<Post> findInactivePostsById(@Param("id") int id, Pageable pageable);
+
+  @Query(nativeQuery = true, value =
+      "select posts.* from posts join users on users.id = posts.user_id where posts.is_active = 1 && posts.moderation_status = 'new' "
+          + "&& posts.time <= NOW() && users.id = :id  order by posts.time desc"
+      , countQuery =
+      "select count(posts.id) from posts join users on users.id = posts.user_id where "
+          + "posts.is_active = 1 && posts.moderation_status = 'new' && posts.time <= NOW() && users.id = :id ")
+  Page<Post> findPendingPostsById(@Param("id") int id, Pageable pageable);
+
+  @Query(nativeQuery = true, value =
+      "select posts.* from posts join users on users.id = posts.user_id where posts.is_active = 1 && posts.moderation_status = 'DECLINED' "
+          + "&& posts.time <= NOW() && users.id = :id  order by posts.time desc"
+      , countQuery =
+      "select count(posts.id) from posts join users on users.id = posts.user_id where "
+          + "posts.is_active = 1 && posts.moderation_status = 'DECLINED' && posts.time <= NOW() && users.id = :id ")
+  Page<Post> findDeclinedPostsById(@Param("id") int id, Pageable pageable);
 
 }

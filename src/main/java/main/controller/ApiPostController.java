@@ -8,6 +8,7 @@ import main.data.response.listResponses.ListTagResponse;
 import main.service.PostService;
 import main.service.TagService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +25,7 @@ public class ApiPostController {
 
 
   @GetMapping("/post")
+ // @PreAuthorize("hasAuthority('user:write')")
   public ResponseEntity<ListPostResponse> getPosts(
       @RequestParam(required = false, defaultValue = "0") int offset,
       @RequestParam(required = false, defaultValue = "10") int limit,
@@ -34,6 +36,7 @@ public class ApiPostController {
   }
 
   @GetMapping("/post/search")
+  //@PreAuthorize("hasAuthority('user:moderate')")
   public ResponseEntity<ListPostResponse> searchPosts(
       @RequestParam(required = false, defaultValue = "0") int offset,
       @RequestParam(required = false, defaultValue = "10") int limit,
@@ -51,7 +54,7 @@ public class ApiPostController {
   }
 
   @GetMapping("/calendar")
-  public ResponseEntity<CalendarResponse> calendar(@RequestParam(required = false) String year){
+  public ResponseEntity<CalendarResponse> calendar(@RequestParam(required = false) String year) {
 
     return ResponseEntity.ok(postService.calendar(year));
   }
@@ -82,6 +85,18 @@ public class ApiPostController {
       @PathVariable int id) {
 
     return ResponseEntity.ok(postService.getPostById(id));
+
+  }
+
+  @GetMapping("/post/my")
+  @PreAuthorize("hasAuthority('user:write')")
+  public ResponseEntity<ListPostResponse> getMyPosts(
+      @RequestParam(required = false, defaultValue = "0") int offset,
+      @RequestParam(required = false, defaultValue = "10") int limit,
+      @RequestParam(required = false, defaultValue = "inactive") String status
+  ) {
+
+    return ResponseEntity.ok(postService.getMyPosts(offset, limit, status));
 
   }
 
