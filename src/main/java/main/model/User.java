@@ -11,6 +11,7 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import lombok.Data;
+import main.model.enums.Role;
 
 @Entity
 @Table(name = "users")
@@ -47,5 +48,9 @@ public class User {
 
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<Post> posts;
+
+  public Role getRole() {
+    return isModerator == true ? Role.MODERATOR : Role.USER;
+  }
 
 }
