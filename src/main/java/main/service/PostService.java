@@ -1,5 +1,6 @@
 package main.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,6 +13,7 @@ import main.data.response.DetailedPostResponse;
 import main.data.response.PostResponse;
 import main.data.response.listResponses.ListPostResponse;
 import main.model.Post;
+import main.model.enums.ModerationStatusCode;
 import main.repository.PostRepository;
 import main.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -127,7 +129,7 @@ public class PostService {
 
     //если не передан - возвращать за текущий год
 
-    if (year==null) {
+    if (year == null) {
 
       currentYear = LocalDate.now().getYear();
     } else {
@@ -186,36 +188,62 @@ public class PostService {
 
   public DetailedPostResponse getPostById(int id) {
 
-    Optional<Post> postOptional = postsRepository.findActivePostById(id);
+    // ЕСЛИ USER АУТЕНТИФИЦИРОВАН НАХОДИТЬ показывать ВСЕ СВОИ ПОСТЫ
+    // ТЕ ПОСТ АВТОР АЙДИ РАВЕН АУТЕНТИФИЦИРОВАН АЙДИ
 
-    if (postOptional.isEmpty()) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "entity not found");
-    }
-
-    Post post = postOptional.get();
-
+    Post post;
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    boolean isAuthenticated = !(auth instanceof AnonymousAuthenticationToken);
 
-// увеличение просмотров поста
+    if (isAuthenticated) {
 
-    if (!(auth instanceof AnonymousAuthenticationToken)) {
-
-      String principal = ((org.springframework.security.core.userdetails.User) auth.getPrincipal())
+      String email = ((org.springframework.security.core.userdetails.User) auth.getPrincipal())
           .getUsername();
 
-      boolean isModerator = userRepository.findByEmail(principal).get().isModerator();
+      Optional<Post> postOptional = postsRepository.findAnyPostById(id);
 
-      //Если модератор авторизован, то не считаем его просмотры вообще
-      //Если автор авторизован, то не считаем просмотры своих же публикаций
-
-      if (!post.getUser().getEmail().equals(principal) && isModerator != true) {
-        post.setViewCount(post.getViewCount() + 1);
+      if (postOptional.isEmpty()) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "entity not found");
       }
-    } else {
-      post.setViewCount(post.getViewCount() + 1);
-    }  // увеличиваем просмотры если пользователь не авторизован ?????
 
-    postsRepository.save(post);
+      post = postOptional.get();
+
+      // если автор искомого поста авторизован то показывать пост с любым статусом
+
+      boolean isPostAuthor = post.getUser().getEmail().equals(email);
+
+      // не автору не показывать не активные посты
+
+      if (!isPostAuthor &&
+          (!post.isActive() ||
+          !post.getModerationStatus().equals(ModerationStatusCode.ACCEPTED) ||
+           post.getTime().isAfter(Instant.now()))) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "entity not found");
+      }
+
+      // увеличение просмотров поста
+
+      boolean isModerator = userRepository.findByEmail(email).get().isModerator();
+
+      if (!isPostAuthor && isModerator != true) {
+        post.setViewCount(post.getViewCount() + 1);
+        postsRepository.save(post);
+      }
+
+    }
+    // ЕСЛИ НЕ АУТЕНТИФИЦИРОВАН НАХОДИТЬ просто ВСЕ активные ПОСТЫ
+    else {
+
+      Optional<Post> postOptional = postsRepository.findActivePostById(id);
+
+      if (postOptional.isEmpty()) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "entity not found");
+      }
+      post = postOptional.get();
+      post.setViewCount(
+          post.getViewCount() + 1);  // увеличиваем просмотры если пользователь не авторизован ?????
+      postsRepository.save(post);
+    }
 
     DetailedPostResponse detailedPostResponse = new DetailedPostResponse(post);
 
@@ -246,18 +274,15 @@ public class PostService {
       Page<Post> myPublishedPosts = postsRepository.findPublishedPostsById(myId, pageable);
       myPublishedPosts.forEach(p -> postsResponse.add(new PostResponse(p)));
       listPostResponse.setCount(myPublishedPosts.getTotalElements());
-    }
-    else if (status.equals("inactive")) {
+    } else if (status.equals("inactive")) {
       Page<Post> myInactivePosts = postsRepository.findInactivePostsById(myId, pageable);
       myInactivePosts.forEach(p -> postsResponse.add(new PostResponse(p)));
       listPostResponse.setCount(myInactivePosts.getTotalElements());
-    }
-    else if (status.equals("pending")) {
+    } else if (status.equals("pending")) {
       Page<Post> myPendingPosts = postsRepository.findPendingPostsById(myId, pageable);
       myPendingPosts.forEach(p -> postsResponse.add(new PostResponse(p)));
       listPostResponse.setCount(myPendingPosts.getTotalElements());
-    }
-    else if (status.equals("declined")) {
+    } else if (status.equals("declined")) {
       Page<Post> myDeclinedPosts = postsRepository.findDeclinedPostsById(myId, pageable);
       myDeclinedPosts.forEach(p -> postsResponse.add(new PostResponse(p)));
       listPostResponse.setCount(myDeclinedPosts.getTotalElements());
