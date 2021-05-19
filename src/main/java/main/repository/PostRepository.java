@@ -20,6 +20,9 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
           + "where posts.is_active = 1 and posts.moderation_status = 'accepted' and posts.time <= NOW() and id = :id")
   Optional<Post> findActivePostById(@Param("id") int id);
 
+  @Query(nativeQuery = true, value = "select * from posts where  id = :id")
+  Optional<Post> findAnyPostById(@Param("id") int id);
+
   @Query(nativeQuery = true, value =
       "select count(*) from posts where is_active = 1 && moderation_status = 'accepted' && time <= NOW()")
   int countAllActivePosts();
