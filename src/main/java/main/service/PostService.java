@@ -8,13 +8,19 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import main.data.dtos.DateAmountView;
+import main.data.request.NewPostRequest;
 import main.data.response.CalendarResponse;
 import main.data.response.DetailedPostResponse;
+import main.data.response.NewPostResponse;
+import main.data.response.NewPostResponseErrors;
 import main.data.response.PostResponse;
 import main.data.response.listResponses.ListPostResponse;
 import main.model.Post;
+import main.model.Tag;
+import main.model.User;
 import main.model.enums.ModerationStatusCode;
 import main.repository.PostRepository;
+import main.repository.TagRepository;
 import main.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,6 +31,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -34,6 +41,7 @@ public class PostService {
 
   private final PostRepository postsRepository;
   private final UserRepository userRepository;
+  private final TagRepository tagRepository;
 
   public ListPostResponse getPosts(int offset, int limit, String mode) {
 
@@ -216,8 +224,8 @@ public class PostService {
 
       if (!isPostAuthor &&
           (!post.isActive() ||
-          !post.getModerationStatus().equals(ModerationStatusCode.ACCEPTED) ||
-           post.getTime().isAfter(Instant.now()))) {
+              !post.getModerationStatus().equals(ModerationStatusCode.ACCEPTED) ||
+              post.getTime().isAfter(Instant.now()))) {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "entity not found");
       }
 
@@ -260,15 +268,20 @@ public class PostService {
 
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-    if (auth instanceof AnonymousAuthenticationToken) {
+    org.springframework.security.core.userdetails.User securityUser = (org.springframework.security.core.userdetails.User) SecurityContextHolder
+        .getContext()
+        .getAuthentication().getPrincipal();
+
+    if (!(securityUser instanceof org.springframework.security.core.userdetails.User)) {
 
       throw new AuthenticationCredentialsNotFoundException("please authorize");
 
     }
 
-    int myId = userRepository.findByEmail(
-        ((org.springframework.security.core.userdetails.User) SecurityContextHolder.getContext()
-            .getAuthentication().getPrincipal()).getUsername()).get().getId();
+    User authUser = userRepository.findByEmail(
+        securityUser.getUsername()).orElseThrow(() -> new UsernameNotFoundException("not found"));
+
+    int myId = authUser.getId();
 
     if (status.equals("published")) {
       Page<Post> myPublishedPosts = postsRepository.findPublishedPostsById(myId, pageable);
@@ -288,6 +301,94 @@ public class PostService {
       listPostResponse.setCount(myDeclinedPosts.getTotalElements());
     }
     return listPostResponse;
+  }
+
+  public NewPostResponse post(NewPostRequest newPostRequest) {
+
+    NewPostResponse newPostResponse = new NewPostResponse();
+
+    if (newPostRequest.getTitle().isEmpty()) {
+
+      NewPostResponseErrors errors = new NewPostResponseErrors();
+      errors.setTitle("title is empty");
+      newPostResponse.setResult(false);
+      newPostResponse.setErrors(errors);
+      return newPostResponse;
+    }
+    if (newPostRequest.getTitle().length() < 3) {
+      NewPostResponseErrors errors = new NewPostResponseErrors();
+      errors.setTitle("title is too short");
+      newPostResponse.setResult(false);
+      newPostResponse.setErrors(errors);
+      return newPostResponse;
+    }
+    if (newPostRequest.getText().isEmpty()) {
+      NewPostResponseErrors errors = new NewPostResponseErrors();
+      errors.setText("text is empty");
+      newPostResponse.setResult(false);
+      newPostResponse.setErrors(errors);
+      return newPostResponse;
+    }
+    if (newPostRequest.getText().length() < 50) {
+      NewPostResponseErrors errors = new NewPostResponseErrors();
+      errors.setText("text is too short");
+      newPostResponse.setResult(false);
+      newPostResponse.setErrors(errors);
+      return newPostResponse;
+    }
+
+    Instant time = Instant.ofEpochMilli(newPostRequest.getTimestamp());
+
+    if (time.isBefore(Instant.now())) {
+      time = Instant.now();
+    }
+
+    Post newPost = new Post();
+    newPost.setActive(newPostRequest.isActive());
+    newPost.setTime(time);
+    newPost.setText(newPostRequest.getText());
+    newPost.setTitle(newPostRequest.getTitle());
+    newPost.setModerationStatus(ModerationStatusCode.NEW);
+
+    List<Tag> tags = new ArrayList<>();
+
+    newPostRequest.getTags().forEach(t -> {
+      {
+
+        Tag tag;
+
+        Optional<Tag> tagOptional = tagRepository.findByName(t);
+
+        if (tagOptional.isEmpty()) {
+          tag = new Tag();
+          tag.setName(t);
+          tagRepository.save(tag);
+        } else {
+          tag = tagOptional.get();
+        }
+
+        tags.add(tag);
+
+      }
+    });
+
+    newPost.setTags(tags);
+
+    String email = ((org.springframework.security.core.userdetails.User) SecurityContextHolder
+        .getContext().getAuthentication()
+        .getPrincipal())
+        .getUsername();
+
+    User author = userRepository.findByEmail(email)
+        .orElseThrow(() -> new UsernameNotFoundException(email + " not found"));
+
+    newPost.setUser(author);
+
+    postsRepository.save(newPost);
+
+    newPostResponse.setResult(true);
+
+    return newPostResponse;
   }
 
   // true = 1 = like false = 0 = dislike
