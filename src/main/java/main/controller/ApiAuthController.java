@@ -1,7 +1,6 @@
 package main.controller;
 
 import java.security.Principal;
-import javax.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import main.data.request.LoginRequest;
 import main.data.request.RegistrationRequest;
@@ -11,7 +10,7 @@ import main.data.response.RegistrationResponse;
 import main.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,9 +33,9 @@ public class ApiAuthController {
 
   @GetMapping("logout")
   @PreAuthorize("hasAuthority('user:write')")
-  public ResponseEntity<LoginResponse> logout(HttpServletRequest request) {
+  public ResponseEntity<LoginResponse> logout() {
 
-    new SecurityContextLogoutHandler().logout(request, null, null);
+    SecurityContextHolder.getContext().setAuthentication(null);
 
     return ResponseEntity.ok(new LoginResponse(true));
   }

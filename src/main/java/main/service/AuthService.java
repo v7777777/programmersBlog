@@ -25,6 +25,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -35,6 +36,7 @@ public class AuthService {
   private final UserRepository userRepository;
   private final AuthenticationManager authenticationManager;
   private final PostRepository postRepository;
+  private final PasswordEncoder passwordEncoder;
 
   @Value("${delete.expiredCaptcha}")
   public String deleteExpiredCaptchaTime;
@@ -150,7 +152,7 @@ public class AuthService {
 
     User newUser = new User();
     newUser.setEmail(email);
-    newUser.setPassword(password);
+    newUser.setPassword(passwordEncoder.encode(password));
     newUser.setName(name);
     newUser.setModerator(false);
     newUser.setRegTime(Instant.now());

@@ -18,6 +18,7 @@ import lombok.Data;
 @Entity
 @Table(name = "tags")
 @Data
+
 public class Tag {
 
   @Id
@@ -36,8 +37,8 @@ public class Tag {
   )
   private List<Post> posts;
 
-   @OneToMany(mappedBy = "tag", cascade = CascadeType.ALL, orphanRemoval = true)
-   private List<Tag2post> tag2posts;
+  @OneToMany(mappedBy = "tag", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Tag2post> tag2posts;
 
 
 }
