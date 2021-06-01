@@ -2,6 +2,8 @@ package main.service;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import main.data.request.SettingsRequest;
+import main.data.response.ResultResponse;
 import main.data.response.SettingsResponse;
 import main.model.GlobalSetting;
 import main.model.enums.SettingValue;
@@ -41,6 +43,27 @@ public class SettingService {
 
     return settingsResponse;
 
+  }
+
+  public ResultResponse changeSettings(SettingsRequest request){
+    ResultResponse response = new ResultResponse();
+    response.setResult(true);
+
+    List <GlobalSetting> allSettings = settingsRepository.findAll();
+
+    GlobalSetting multiuserMode = allSettings.stream().filter(gs -> gs.getCode().equals("MULTIUSER_MODE")).findFirst().get();
+    GlobalSetting postPremoderation = allSettings.stream().filter(gs -> gs.getCode().equals("POST_PREMODERATION")).findFirst().get();
+    GlobalSetting statisticsIsPublic = allSettings.stream().filter(gs -> gs.getCode().equals("STATISTICS_IS_PUBLIC")).findFirst().get();
+
+    multiuserMode.setValue(request.getMultiUserMode() ? SettingValue.YES : SettingValue.NO);
+    postPremoderation.setValue(request.getPostPremoderation() ? SettingValue.YES : SettingValue.NO);
+    statisticsIsPublic.setValue(request.getStatisticsIsPublic() ? SettingValue.YES : SettingValue.NO);
+
+    settingsRepository.save(multiuserMode);
+    settingsRepository.save(postPremoderation);
+    settingsRepository.save(statisticsIsPublic);
+    response.setResult(true);
+    return response;
   }
 
   private boolean convertSettingValueToBoolean(SettingValue value) {

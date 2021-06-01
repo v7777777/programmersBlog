@@ -4,12 +4,9 @@ import java.util.List;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
@@ -28,13 +25,11 @@ public class Tag {
   @Column(name = "name", nullable = false)
   private String name;
 
+  // The owner side is the one without the mappedBy attribute.
+  // JPA/Hibernate only cares about the owner side.
+  // Your code only modifies the inverse side, and not the owner side.
 
-  @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-  @JoinTable(
-      name = "tag2post",
-      joinColumns = {@JoinColumn(name = "tag_id")},
-      inverseJoinColumns = {@JoinColumn(name = "post_id")}
-  )
+  @ManyToMany(mappedBy = "tags", cascade = CascadeType.ALL)
   private List<Post> posts;
 
   @OneToMany(mappedBy = "tag", cascade = CascadeType.ALL, orphanRemoval = true)

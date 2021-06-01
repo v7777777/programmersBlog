@@ -31,6 +31,31 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
       "select count(*) from posts where is_active = 1 && moderation_status = 'new' && time <= NOW()")
   int countNewPosts();
 
+  @Query(nativeQuery = true, value =
+      "select count(*) from posts")
+  Optional<Integer> countAllPosts();
+
+  @Query(nativeQuery = true, value =
+      "select count(*) from posts where user_id = :myId && is_active = 1 && moderation_status = 'accepted' && time <= NOW()")
+  Optional<Integer> countMyPublishedPosts(@Param("myId") int myId);
+
+  @Query(nativeQuery = true, value =
+      "select SUM(view_count) from posts")
+  Optional<Integer> countAllPostsViews();
+
+  @Query(nativeQuery = true, value =
+      "select SUM(view_count) from posts where user_id = :myId")
+  Optional<Integer> countAllMyPostsViews(@Param("myId") int myId);
+
+
+  @Query(nativeQuery = true, value =
+      "select * from posts order by time asc limit 1")
+  Optional <Post> getFirstPublication();
+
+
+  @Query(nativeQuery = true, value =
+      "select * from posts where user_id = :myId order by time asc limit 1")
+  Optional <Post> getMyFirstPublication(@Param("myId") int myId);
 
   @Query(nativeQuery = true, value =
       "select * from posts where is_active = 1 && moderation_status = 'accepted' && time <= NOW()",
@@ -67,13 +92,11 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
           + "&& (posts.title like :query OR posts.text like :query OR users.name like :query)")
   Page<Post> findByTextOrTitle(@Param("query") String query, Pageable pageable);
 
-
   @Query(nativeQuery = true,
       value = "select date(p.time) as time , count(date(p.time)) as count from posts as p "
           + "where p.is_active = 1 && p.moderation_status = 'accepted' && p.time <= NOW() && EXTRACT( YEAR FROM p.time) = :year "
           + "group by date(p.time) order by date(p.time) desc")
   List<DateAmountView> getStatisticsPostsFromYear(@Param("year") int year);
-
 
   @Query(nativeQuery = true,
       value = "select EXTRACT(YEAR FROM time) from posts "
@@ -117,11 +140,37 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
   Page<Post> findPendingPostsById(@Param("id") int id, Pageable pageable);
 
   @Query(nativeQuery = true, value =
+      "select * from posts where posts.is_active = 1 && posts.moderation_status = 'new' "
+          + "&& posts.time <= NOW() order by posts.time desc"
+      , countQuery =
+      "select count(*) from posts where "
+          + "posts.is_active = 1 && posts.moderation_status = 'new' && posts.time <= NOW()")
+  Page<Post> getAllPendingPosts(Pageable pageable);
+
+  @Query(nativeQuery = true, value =
       "select posts.* from posts join users on users.id = posts.user_id where posts.is_active = 1 && posts.moderation_status = 'DECLINED' "
           + "&& posts.time <= NOW() && users.id = :id  order by posts.time desc"
       , countQuery =
       "select count(posts.id) from posts join users on users.id = posts.user_id where "
           + "posts.is_active = 1 && posts.moderation_status = 'DECLINED' && posts.time <= NOW() && users.id = :id ")
   Page<Post> findDeclinedPostsById(@Param("id") int id, Pageable pageable);
+
+  @Query(nativeQuery = true, value =
+      "select * from posts where is_active = 1 && moderation_status = 'DECLINED' "
+          + "&& time <= NOW() && moderator_id = :moderatorId order by time desc"
+      , countQuery =
+      "select count(*) from posts where is_active = 1 && moderation_status = 'DECLINED' "
+          + "&& time <= NOW() && moderator_id = :moderatorId")
+  Page<Post> getAllDeclinedByMePosts(@Param("moderatorId") int moderatorId, Pageable pageable);
+
+  @Query(nativeQuery = true, value =
+      "select * from posts where is_active = 1 && moderation_status = 'ACCEPTED' "
+          + "&& time <= NOW() && moderator_id = :moderatorId order by time desc"
+      , countQuery =
+      "select count(*) from posts where is_active = 1 && moderation_status = 'ACCEPTED' "
+          + "&& time <= NOW() && moderator_id = :moderatorId")
+  Page<Post> getAllAcceptedByMePosts(@Param("moderatorId") int moderatorId, Pageable pageable);
+
+
 
 }

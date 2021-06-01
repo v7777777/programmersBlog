@@ -47,7 +47,7 @@ create table posts (
 id integer not null auto_increment,
 is_active TINYINT not null,
 moderation_status enum('NEW', 'ACCEPTED', 'DECLINED') not null,
-text varchar(255) not null,
+text varchar(16383) not null,
 time datetime not null,
 title varchar(255) not null,
 view_count integer not null,

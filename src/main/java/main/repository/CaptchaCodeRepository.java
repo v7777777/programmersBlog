@@ -2,7 +2,6 @@ package main.repository;
 
 import java.util.Optional;
 import main.model.CaptchaCode;
-import main.model.Post;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;

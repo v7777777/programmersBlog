@@ -1,19 +1,27 @@
 package main.controller;
 
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import main.data.request.NewCommentRequest;
 import main.data.request.NewPostRequest;
+import main.data.request.PostModerationRequest;
+import main.data.request.RateRequest;
 import main.data.response.CalendarResponse;
 import main.data.response.DetailedPostResponse;
-import main.data.response.NewPostResponse;
+import main.data.response.NewCommentResponse;
+import main.data.response.ResultResponse;
 import main.data.response.listResponses.ListPostResponse;
 import main.data.response.listResponses.ListTagResponse;
+import main.service.ModerationService;
 import main.service.PostService;
 import main.service.TagService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,10 +34,10 @@ public class ApiPostController {
 
   private final PostService postService;
   private final TagService tagService;
+  private final ModerationService moderationService;
 
 
   @GetMapping("/post")
- // @PreAuthorize("hasAuthority('user:write')")
   public ResponseEntity<ListPostResponse> getPosts(
       @RequestParam(required = false, defaultValue = "0") int offset,
       @RequestParam(required = false, defaultValue = "10") int limit,
@@ -40,7 +48,6 @@ public class ApiPostController {
   }
 
   @GetMapping("/post/search")
-  //@PreAuthorize("hasAuthority('user:moderate')")
   public ResponseEntity<ListPostResponse> searchPosts(
       @RequestParam(required = false, defaultValue = "0") int offset,
       @RequestParam(required = false, defaultValue = "10") int limit,
@@ -106,11 +113,70 @@ public class ApiPostController {
 
   @PostMapping("/post")
   @PreAuthorize("hasAuthority('user:write')")
-  public ResponseEntity<NewPostResponse> newPost(@RequestBody NewPostRequest newPost) {
+  public ResponseEntity<ResultResponse> addPost(@RequestBody NewPostRequest newPost) {
 
-    return ResponseEntity.ok(postService.post(newPost));
+    return ResponseEntity.ok(postService.addPost(newPost));
 
   }
 
+  @PutMapping("/post/{id}")
+  @PreAuthorize("hasAuthority('user:write')")
+  public ResponseEntity<ResultResponse> editPost(@PathVariable int id,
+      @RequestBody NewPostRequest editedPost) {
+
+    return ResponseEntity.ok(postService.editPost(id, editedPost));
+
+  }
+
+  @PostMapping("/comment")
+  @PreAuthorize("hasAuthority('user:write')")
+  public ResponseEntity<NewCommentResponse> addComment(@RequestBody NewCommentRequest newComment) {
+
+    NewCommentResponse response = postService.addComment(newComment);
+
+    Optional<Boolean> resultOptional = Optional.ofNullable(response.getResult());
+
+    if (resultOptional.isPresent()) {
+      return new ResponseEntity(response, HttpStatus.BAD_REQUEST);
+    }
+
+    return ResponseEntity.ok(response);
+
+  }
+
+  @PostMapping("/post/like")
+  @PreAuthorize("hasAuthority('user:write')")
+  public ResponseEntity<ResultResponse> like(@RequestBody RateRequest likeRequest) {
+
+    return ResponseEntity.ok(postService.rate(likeRequest, 1));  // true = 1 = like false = 0 = dislike
+
+  }
+
+  @PostMapping("/post/dislike")
+  @PreAuthorize("hasAuthority('user:write')")
+  public ResponseEntity<ResultResponse> dislike(@RequestBody RateRequest dislikeRequest) {
+
+    return ResponseEntity.ok(postService.rate(dislikeRequest, 0));  // true = 1 = like false = 0 = dislike
+
+  }
+
+  @GetMapping("/post/moderation")
+  @PreAuthorize("hasAuthority('user:moderate')")
+  public ResponseEntity<ListPostResponse> getModerationPostList(
+      @RequestParam(required = false, defaultValue = "0") int offset,
+      @RequestParam(required = false, defaultValue = "10") int limit,
+      @RequestParam(required = false, defaultValue = "new") String status){
+
+    return ResponseEntity.ok(moderationService.getModerationPostList(offset, limit, status));
+
+  }
+
+  @PostMapping("/moderation")
+  @PreAuthorize("hasAuthority('user:moderate')")
+  public ResponseEntity<ResultResponse> moderatePost(@RequestBody PostModerationRequest request) {
+
+    return ResponseEntity.ok(moderationService.moderatePost(request));  // true = 1 = like false = 0 = dislike
+
+  }
 
 }

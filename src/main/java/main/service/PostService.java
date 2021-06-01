@@ -5,21 +5,31 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import main.data.dtos.DateAmountView;
+import main.data.request.NewCommentRequest;
 import main.data.request.NewPostRequest;
+import main.data.request.RateRequest;
 import main.data.response.CalendarResponse;
 import main.data.response.DetailedPostResponse;
-import main.data.response.NewPostResponse;
-import main.data.response.NewPostResponseErrors;
+import main.data.response.NewCommentResponse;
 import main.data.response.PostResponse;
+import main.data.response.ResultResponse;
 import main.data.response.listResponses.ListPostResponse;
+import main.model.GlobalSetting;
 import main.model.Post;
+import main.model.PostComment;
+import main.model.PostVote;
 import main.model.Tag;
 import main.model.User;
 import main.model.enums.ModerationStatusCode;
+import main.model.enums.SettingValue;
+import main.repository.GlobalSettingRepository;
+import main.repository.PostCommentRepository;
 import main.repository.PostRepository;
+import main.repository.PostVoteRepository;
 import main.repository.TagRepository;
 import main.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -28,7 +38,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -42,6 +51,11 @@ public class PostService {
   private final PostRepository postsRepository;
   private final UserRepository userRepository;
   private final TagRepository tagRepository;
+  private final PostCommentRepository postCommentRepository;
+  private final PostVoteRepository postVoteRepository;
+  private final UserService userService;
+  private final GlobalSettingRepository globalSettingRepository;
+
 
   public ListPostResponse getPosts(int offset, int limit, String mode) {
 
@@ -205,8 +219,9 @@ public class PostService {
 
     if (isAuthenticated) {
 
-      String email = ((org.springframework.security.core.userdetails.User) auth.getPrincipal())
-          .getUsername();
+      User currentUser = userService.getUserFromAuthentication();
+
+      String email = currentUser.getEmail();
 
       Optional<Post> postOptional = postsRepository.findAnyPostById(id);
 
@@ -219,21 +234,21 @@ public class PostService {
       // если автор искомого поста авторизован то показывать пост с любым статусом
 
       boolean isPostAuthor = post.getUser().getEmail().equals(email);
+      boolean isModerator = currentUser.isModerator();
 
       // не автору не показывать не активные посты
+      // но модератору показывать
 
-      if (!isPostAuthor &&
-          (!post.isActive() ||
-              !post.getModerationStatus().equals(ModerationStatusCode.ACCEPTED) ||
-              post.getTime().isAfter(Instant.now()))) {
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "entity not found");
+      if ((!isPostAuthor && (!post.isActive() ||
+          !post.getModerationStatus().equals(ModerationStatusCode.ACCEPTED)  ||
+              post.getTime().isAfter(Instant.now()))) &&
+          !isModerator) {
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "entity not available");
       }
 
       // увеличение просмотров поста
 
-      boolean isModerator = userRepository.findByEmail(email).get().isModerator();
-
-      if (!isPostAuthor && isModerator != true) {
+      if (!isPostAuthor && !isModerator) {
         post.setViewCount(post.getViewCount() + 1);
         postsRepository.save(post);
       }
@@ -266,20 +281,20 @@ public class PostService {
     List<PostResponse> postsResponse = new ArrayList<>();
     ListPostResponse listPostResponse = new ListPostResponse(postsResponse);
 
-    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    org.springframework.security.core.userdetails.User securityUser =
+        (org.springframework.security.core.userdetails.User) SecurityContextHolder
+            .getContext()
+            .getAuthentication().getPrincipal();
 
-    org.springframework.security.core.userdetails.User securityUser = (org.springframework.security.core.userdetails.User) SecurityContextHolder
-        .getContext()
-        .getAuthentication().getPrincipal();
-
-    if (!(securityUser instanceof org.springframework.security.core.userdetails.User)) {
-
-      throw new AuthenticationCredentialsNotFoundException("please authorize");
-
-    }
+    // не нужно тк аннотациия на контроллере
+//    if (!(securityUser instanceof org.springframework.security.core.userdetails.User)) {
+//
+//      throw new AuthenticationCredentialsNotFoundException("please authorize");
+//
+//    }
 
     User authUser = userRepository.findByEmail(
-        securityUser.getUsername()).orElseThrow(() -> new UsernameNotFoundException("not found"));
+        (securityUser).getUsername()).orElseThrow(() -> new UsernameNotFoundException("not found"));
 
     int myId = authUser.getId();
 
@@ -303,39 +318,20 @@ public class PostService {
     return listPostResponse;
   }
 
-  public NewPostResponse post(NewPostRequest newPostRequest) {
+  public ResultResponse addPost(NewPostRequest newPostRequest) {
 
-    NewPostResponse newPostResponse = new NewPostResponse();
+    ResultResponse newPostResponse = new ResultResponse();
+    Map<String, String> errors = new HashMap<>();
 
-    if (newPostRequest.getTitle().isEmpty()) {
+    checkNewPostForErrors(newPostRequest, errors);
 
-      NewPostResponseErrors errors = new NewPostResponseErrors();
-      errors.setTitle("title is empty");
-      newPostResponse.setResult(false);
+    if (!errors.isEmpty()) {
       newPostResponse.setErrors(errors);
+      newPostResponse.setResult(false);
       return newPostResponse;
     }
-    if (newPostRequest.getTitle().length() < 3) {
-      NewPostResponseErrors errors = new NewPostResponseErrors();
-      errors.setTitle("title is too short");
-      newPostResponse.setResult(false);
-      newPostResponse.setErrors(errors);
-      return newPostResponse;
-    }
-    if (newPostRequest.getText().isEmpty()) {
-      NewPostResponseErrors errors = new NewPostResponseErrors();
-      errors.setText("text is empty");
-      newPostResponse.setResult(false);
-      newPostResponse.setErrors(errors);
-      return newPostResponse;
-    }
-    if (newPostRequest.getText().length() < 50) {
-      NewPostResponseErrors errors = new NewPostResponseErrors();
-      errors.setText("text is too short");
-      newPostResponse.setResult(false);
-      newPostResponse.setErrors(errors);
-      return newPostResponse;
-    }
+
+    // newPostRequest.getTimestamp()  всегда приходит таймстемп = Mon Jan 19 1970  !!!!!
 
     Instant time = Instant.ofEpochMilli(newPostRequest.getTimestamp());
 
@@ -344,15 +340,168 @@ public class PostService {
     }
 
     Post newPost = new Post();
-    newPost.setActive(newPostRequest.isActive());
+    newPost.setActive(newPostRequest.isActive()); // неактивные тоже ModerationStatusCode.NEW (или принят) только не показываются модератору
     newPost.setTime(time);
     newPost.setText(newPostRequest.getText());
     newPost.setTitle(newPostRequest.getTitle());
-    newPost.setModerationStatus(ModerationStatusCode.NEW);
+
+    GlobalSetting postPremoderation = globalSettingRepository.findByCode("POST_PREMODERATION");
+
+    if(postPremoderation.getValue().equals(SettingValue.YES)){
+      newPost.setModerationStatus(ModerationStatusCode.NEW);
+    }
+    else if(postPremoderation.getValue().equals(SettingValue.NO)){
+      newPost.setModerationStatus(ModerationStatusCode.ACCEPTED);
+    }
+
+    List<Tag> tags = getTagsListFromRequest(newPostRequest.getTags());
+
+    newPost.setTags(tags);
+
+    User author = userService.getUserFromAuthentication();
+
+    newPost.setUser(author);
+
+    postsRepository.save(newPost);
+
+    newPostResponse.setResult(true);
+
+    return newPostResponse;
+  }
+
+  public ResultResponse editPost(int id, NewPostRequest editedPostRequest) {
+
+    ResultResponse editedPostResponse = new ResultResponse();
+    Map<String, String> errors = new HashMap<>();
+    Post postToEdit;
+
+    Optional<Post> postOptional = postsRepository.findAnyPostById(id);
+
+    if (postOptional.isEmpty()) {
+      errors.put("not found", "post doesn't exist");
+    }
+
+    checkNewPostForErrors(editedPostRequest, errors);
+
+    if (!errors.isEmpty()) {
+      editedPostResponse.setErrors(errors);
+      editedPostResponse.setResult(false);
+      return editedPostResponse;
+    }
+
+    Instant time = Instant.ofEpochMilli(editedPostRequest.getTimestamp());
+
+    if (time.isBefore(Instant.now())) {
+      time = Instant.now();
+    }
+
+    postToEdit = postOptional.get();
+
+    postToEdit.setActive(editedPostRequest.isActive());
+    postToEdit.setTitle(editedPostRequest.getTitle());
+    postToEdit.setTime(time);
+    postToEdit.setText(editedPostRequest.getText());
+    List<Tag> tags = getTagsListFromRequest(editedPostRequest.getTags());
+    postToEdit.setTags(tags);
+
+    // Пост должен сохраняться со статусом модерации NEW, если его изменил автор, и статус модерации не
+    // должен изменяться, если его изменил модератор.
+
+    // кто авторизован и автор поста который меняется
+
+    String email = ((org.springframework.security.core.userdetails.User) SecurityContextHolder
+        .getContext().getAuthentication()
+        .getPrincipal())
+        .getUsername();
+
+    if (postToEdit.getUser().getEmail().equals(email)) {
+      postToEdit.setModerationStatus(ModerationStatusCode.NEW);
+    }
+
+    postsRepository.save(postToEdit);
+    editedPostResponse.setResult(true);
+    return editedPostResponse;
+
+  }
+
+  public NewCommentResponse addComment(NewCommentRequest newCommentRequest) {
+
+    NewCommentResponse newCommentResponse = new NewCommentResponse();
+    Map<String, String> errors = new HashMap<>();
+
+    // any тк если нужно оставить комент к своему посту
+    // нельзя оставить комент к несвоему неактивному посту тк он не отображается нигде
+
+    Post commentedPost = postsRepository
+        .findAnyPostById(newCommentRequest.getPostId())
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "post not found"));
+
+    Optional<PostComment> parentCommentOptional = Optional.empty();
+
+   // int parentId; null is 0 no npe
+
+    if (newCommentRequest.getParentId() != 0) {
+
+      PostComment parentComment = postCommentRepository
+          .findById(newCommentRequest.getParentId())
+          .orElseThrow(
+              () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "comment not found"));
+
+      parentCommentOptional = Optional.of(parentComment);
+    }
+
+    if (newCommentRequest.getText().isEmpty() || newCommentRequest.getText().length() > 255) {
+      errors.put("text", "текст комментария");
+      newCommentResponse.setErrors(errors);
+      newCommentResponse.setResult(false);
+      return newCommentResponse;
+    }
+
+    PostComment commentToAdd = new PostComment();
+    commentToAdd.setPost(commentedPost);
+    if (!parentCommentOptional.isEmpty()) {
+      commentToAdd.setPostComment(parentCommentOptional.get());
+    }
+    commentToAdd.setText(newCommentRequest.getText());
+    commentToAdd.setTime(Instant.now());
+    User author = userService.getUserFromAuthentication();
+    commentToAdd.setUser(author);
+
+    commentToAdd = postCommentRepository.save(commentToAdd);
+    newCommentResponse.setId(commentToAdd.getId());
+    return newCommentResponse;
+  }
+
+  private Map<String, String> checkNewPostForErrors(NewPostRequest newPostRequest,
+      Map<String, String> errors) {
+
+    if (newPostRequest.getTitle().isEmpty()) {
+      errors.put("title", "title is empty");
+    }
+    if (!newPostRequest.getTitle().isEmpty() && newPostRequest.getTitle().length() < 3) {
+      errors.put("title", "title is too short");
+    }
+    if (!newPostRequest.getTitle().isEmpty() && newPostRequest.getTitle().length() > 255) {
+      errors.put("title", "title is too long");
+    }
+    if (newPostRequest.getText().isEmpty()) {
+      errors.put("text", "text is empty");
+    }
+    if (!newPostRequest.getText().isEmpty() && newPostRequest.getText().length() < 50) {
+      errors.put("text", "text is too short");
+    }
+    if (!newPostRequest.getText().isEmpty() && newPostRequest.getText().length() > 16383) {
+      errors.put("text", "text is too long");
+    }
+
+    return errors;
+  }
+
+  private List<Tag> getTagsListFromRequest(List<String> tagsFromRequest) {
 
     List<Tag> tags = new ArrayList<>();
 
-    newPostRequest.getTags().forEach(t -> {
+    tagsFromRequest.forEach(t -> {
       {
 
         Tag tag;
@@ -372,23 +521,51 @@ public class PostService {
       }
     });
 
-    newPost.setTags(tags);
+    return tags;
 
-    String email = ((org.springframework.security.core.userdetails.User) SecurityContextHolder
-        .getContext().getAuthentication()
-        .getPrincipal())
-        .getUsername();
+  }
 
-    User author = userRepository.findByEmail(email)
-        .orElseThrow(() -> new UsernameNotFoundException(email + " not found"));
+  public ResultResponse rate(RateRequest rateRequest, int value) {
 
-    newPost.setUser(author);
+    ResultResponse rateResponse = new ResultResponse();
 
-    postsRepository.save(newPost);
+    User authUser = userService.getUserFromAuthentication();
 
-    newPostResponse.setResult(true);
+    Post postToRate = postsRepository
+        .findAnyPostById(rateRequest.getId())
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "post not found"));
 
-    return newPostResponse;
+    Optional<PostVote> postVoteOptional = postVoteRepository.findByUserAndPostIds(authUser.getId(), postToRate.getId());
+
+    if(postVoteOptional.isEmpty()){
+
+      PostVote postVote = new PostVote();
+      postVote.setValue(value == 1 ? true : false); // true = 1 = like false = 0 = dislike
+      postVote.setUser(authUser);
+      postVote.setPost(postToRate);
+      postVote.setTime(Instant.now());
+      postVoteRepository.save(postVote);
+      rateResponse.setResult(true);
+      return rateResponse;
+    }
+
+    PostVote existing = postVoteOptional.get();
+
+    if(existing.isValue() && value == 1) {rateResponse.setResult(false);}
+    if(!existing.isValue() && value == 0) {rateResponse.setResult(false);}
+    if(!existing.isValue() && value == 1) {
+      existing.setValue(true);
+      postVoteRepository.save(existing);
+      rateResponse.setResult(true);
+    }
+    if(existing.isValue() && value == 0) {
+      existing.setValue(false);
+      postVoteRepository.save(existing);
+      rateResponse.setResult(true);
+    }
+
+    return rateResponse;
+
   }
 
   // true = 1 = like false = 0 = dislike
