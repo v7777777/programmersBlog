@@ -21,4 +21,12 @@ blog:
   copyrightFrom: 2005
 
 delete:
-   expiredCaptcha: 60
+   expiredCaptcha: 240
+
+upload:
+   path: src/main/resources/static/upload
+   url: /usr_img/
+
+appEmail:
+  email: progbloggg@gmail.com
+  password: lrzlicambdmlockl

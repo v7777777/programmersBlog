@@ -2,24 +2,31 @@ package main.service;
 
 import com.github.cage.Cage;
 import com.github.cage.GCage;
+import com.github.cage.token.RandomTokenGenerator;
 import java.security.Principal;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import lombok.RequiredArgsConstructor;
 import main.data.request.LoginRequest;
 import main.data.request.RegistrationRequest;
 import main.data.response.CaptchaResponse;
 import main.data.response.LoginResponse;
-import main.data.response.RegistrationResponse;
-import main.data.response.RegistrationResponseErrors;
+import main.data.response.ResultResponse;
 import main.model.CaptchaCode;
+import main.model.GlobalSetting;
 import main.model.User;
+import main.model.enums.SettingValue;
 import main.repository.CaptchaCodeRepository;
+import main.repository.GlobalSettingRepository;
 import main.repository.PostRepository;
 import main.repository.UserRepository;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -27,6 +34,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +45,7 @@ public class AuthService {
   private final AuthenticationManager authenticationManager;
   private final PostRepository postRepository;
   private final PasswordEncoder passwordEncoder;
+  private final GlobalSettingRepository globalSettingRepository;
 
   @Value("${delete.expiredCaptcha}")
   public String deleteExpiredCaptchaTime;
@@ -58,8 +67,10 @@ public class AuthService {
     CaptchaCode captchaCode = new CaptchaCode();
 
     Cage cage = new GCage();
-    String token = cage.getTokenGenerator()
-        .next();  // token generator to produce strings for the image
+
+    // token generator to produce strings for the image
+
+    String token = new RandomTokenGenerator(new Random(), 5, 1).next();
     byte[] imageByte = cage.draw(token); // Generate an image and return it in a byte array.
 
     String encodedString = Base64.getEncoder().encodeToString(imageByte);
@@ -80,7 +91,7 @@ public class AuthService {
     return captchaResponse;
   }
 
-  public RegistrationResponse register(RegistrationRequest request) {
+  public ResultResponse register(RegistrationRequest request) {
 
     // после того как пользователь
     //вводит данные каптчи, отправляется форма содержащая текст-расшифровка каптчи пользователем и
@@ -93,75 +104,33 @@ public class AuthService {
 
     // удалить старые каптчи здесь тоже???? ---
 
-    RegistrationResponse registrationResponse = new RegistrationResponse();
 
-    String email = request.getEmail();
-    Optional<User> userOptional = userRepository.findByEmail(email);
+    GlobalSetting multiUserMode = globalSettingRepository.findByCode("MULTIUSER_MODE");
 
-    if (!userOptional.isEmpty()) {
-      registrationResponse.setResult(false);
-      RegistrationResponseErrors errors = new RegistrationResponseErrors();
-      errors.setEmail("Этот e-mail уже зарегистрирован");
-      registrationResponse.setErrors(errors);
-      return registrationResponse;
+    if(multiUserMode.getValue().equals(SettingValue.NO)){throw new ResponseStatusException(
+        HttpStatus.NOT_FOUND, "Регистрация закрыта");
     }
 
-    String name = request.getName();
+    ResultResponse resultResponse = new ResultResponse();
 
-    if (name.matches("\\s+") || name.isEmpty()) {
+    Map<String, String> errors = checkRegistrationRequestForErrors(request);
 
-      registrationResponse.setResult(false);
-      RegistrationResponseErrors errors = new RegistrationResponseErrors();
-      errors.setName("Имя указано неверно");
-      registrationResponse.setErrors(errors);
-      return registrationResponse;
-
-    }
-
-    String password = request.getPassword();
-
-    if (password.length() < 6) {
-
-      registrationResponse.setResult(false);
-      RegistrationResponseErrors errors = new RegistrationResponseErrors();
-      errors.setPassword("Пароль короче 6-ти символов");
-      registrationResponse.setErrors(errors);
-      return registrationResponse;
-
-    }
-
-    Optional<CaptchaCode> captchaCodeOptional = captchaCodeRepository
-        .checkSecret(request.getCaptchaSecret());
-
-    if (captchaCodeOptional.isEmpty()) {
-      registrationResponse.setResult(false);
-      return registrationResponse;
-    }
-
-    CaptchaCode captchaCodeCurrent = captchaCodeOptional.get();
-
-    if (!request.getCaptcha().equals(captchaCodeCurrent.getCode())) {
-
-      registrationResponse.setResult(false);
-      RegistrationResponseErrors errors = new RegistrationResponseErrors();
-      errors.setCaptcha("Код с картинки введён неверно");
-      registrationResponse.setErrors(errors);
-      return registrationResponse;
-
+    if(!errors.isEmpty()){
+      resultResponse.setResult(false);
+      resultResponse.setErrors(errors);
+      return resultResponse;
     }
 
     User newUser = new User();
-    newUser.setEmail(email);
-    newUser.setPassword(passwordEncoder.encode(password));
-    newUser.setName(name);
+    newUser.setEmail(request.getEmail());
+    newUser.setPassword(passwordEncoder.encode(request.getPassword()));
+    newUser.setName(request.getName());
     newUser.setModerator(false);
     newUser.setRegTime(Instant.now());
     userRepository.save(newUser);
-    registrationResponse.setResult(true);
+    resultResponse.setResult(true);
 
-    return registrationResponse;
-
-
+    return resultResponse;
   }
 
   public LoginResponse login(LoginRequest loginRequest) {
@@ -200,4 +169,49 @@ public class AuthService {
 
     return loginResponse;
   }
+
+  private Map<String, String> checkRegistrationRequestForErrors(RegistrationRequest request) {
+
+    Map<String, String> errors = new HashMap<>();
+
+    String email = request.getEmail();
+    Optional<User> userOptional = userRepository.findByEmail(email);
+
+    if (!userOptional.isEmpty()) {
+      errors.put("email","Этот e-mail уже зарегистрирован");
+    }
+
+    String name = request.getName();
+
+    if (name.matches("\\s+") || name.isEmpty()) {
+      errors.put("name", "Имя указано неверно");
+    }
+
+    String password = request.getPassword();
+
+    if (password.length() < 6) {
+      errors.put("password", "Пароль короче 6-ти символов");
+    }
+
+    captchaCodeRepository.deleteExpiredCaptchas(Integer.parseInt(deleteExpiredCaptchaTime));
+
+    Optional<CaptchaCode> captchaCodeOptional = captchaCodeRepository
+        .checkSecret(request.getCaptchaSecret());
+
+    if (captchaCodeOptional.isEmpty()) {
+      errors.put("captcha expired", "срок кода с картинки истек, обновите страницу и попробуйте еще раз");
+    }
+    else {
+
+      CaptchaCode captchaCodeCurrent = captchaCodeOptional.get();
+
+      if (!request.getCaptcha().equals(captchaCodeCurrent.getCode())) {
+        errors.put("captcha", "Код с картинки введён неверно");
+      }
+    }
+
+    return errors;
+  }
+
+
 }

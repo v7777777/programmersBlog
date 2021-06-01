@@ -12,6 +12,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
@@ -56,7 +57,16 @@ public class Post {
   @Column(name = "view_count", nullable = false)
   private int viewCount;  // количество просмотров поста
 
-  @ManyToMany(mappedBy = "posts", cascade = CascadeType.ALL)
+  // The owner side is the one without the mappedBy attribute.
+  // JPA/Hibernate only cares about the owner side.
+  // Your code only modifies the inverse side, and not the owner side.
+
+  @ManyToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+  @JoinTable(
+      name = "tag2post",
+      joinColumns = {@JoinColumn(name = "post_id")},
+      inverseJoinColumns = {@JoinColumn(name = "tag_id")}
+  )
   private List<Tag> tags;
 
   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)

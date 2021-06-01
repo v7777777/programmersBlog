@@ -2,15 +2,17 @@ package main.data.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import java.util.Map;
 import lombok.Data;
 
 @Data
-public class NewPostResponseErrors {
+public class NewCommentResponse {
 
   @JsonInclude(Include.NON_NULL)
-  private String title;
-
+  private Integer id = null;
   @JsonInclude(Include.NON_NULL)
-  private String text;
+  private Map<String, String> errors;
+  @JsonInclude(Include.NON_NULL)
+  private Boolean result = null;
 
 }

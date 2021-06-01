@@ -28,8 +28,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     UserDetails userDetails = SecurityUser.fromUser(user);
 
-    userDetails.getAuthorities().forEach(a -> System.out.println(a));
-
     return userDetails;
   }
 }
