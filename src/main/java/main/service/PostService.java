@@ -333,7 +333,7 @@ public class PostService {
 
     // newPostRequest.getTimestamp()  всегда приходит таймстемп = Mon Jan 19 1970  !!!!!
 
-    Instant time = Instant.ofEpochMilli(newPostRequest.getTimestamp());
+    Instant time = Instant.ofEpochSecond(newPostRequest.getTimestamp());
 
     if (time.isBefore(Instant.now())) {
       time = Instant.now();
@@ -389,7 +389,7 @@ public class PostService {
       return editedPostResponse;
     }
 
-    Instant time = Instant.ofEpochMilli(editedPostRequest.getTimestamp());
+    Instant time = Instant.ofEpochSecond(editedPostRequest.getTimestamp());
 
     if (time.isBefore(Instant.now())) {
       time = Instant.now();

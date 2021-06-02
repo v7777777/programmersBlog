@@ -28,7 +28,7 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
   int countAllActivePosts();
 
   @Query(nativeQuery = true, value =
-      "select count(*) from posts where is_active = 1 && moderation_status = 'new' && time <= NOW()")
+      "select count(*) from posts where is_active = 1 && moderation_status = 'new'") // для модератора видны будущие посты
   int countNewPosts();
 
   @Query(nativeQuery = true, value =
@@ -119,10 +119,10 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
 
   @Query(nativeQuery = true, value =
       "select posts.* from posts join users on users.id = posts.user_id where posts.is_active = 1 && posts.moderation_status = 'accepted' "
-    + "&& posts.time <= NOW() && users.id = :id  order by posts.time desc"
+    + "&& users.id = :id  order by posts.time desc"
       , countQuery =
       "select count(posts.id) from posts join users on users.id = posts.user_id where "
-          + "posts.is_active = 1 && posts.moderation_status = 'accepted' && posts.time <= NOW() && users.id = :id ")
+          + "posts.is_active = 1 && posts.moderation_status = 'accepted' && users.id = :id ") // для автора будущие посты отражаются в опубликованных для всех остальных их нет в ленте
   Page<Post> findPublishedPostsById(@Param("id") int id, Pageable pageable);
 
   @Query(nativeQuery = true, value =
@@ -133,10 +133,10 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
 
   @Query(nativeQuery = true, value =
       "select posts.* from posts join users on users.id = posts.user_id where posts.is_active = 1 && posts.moderation_status = 'new' "
-          + "&& posts.time <= NOW() && users.id = :id  order by posts.time desc"
+          + "&& users.id = :id  order by posts.time desc"
       , countQuery =
       "select count(posts.id) from posts join users on users.id = posts.user_id where "
-          + "posts.is_active = 1 && posts.moderation_status = 'new' && posts.time <= NOW() && users.id = :id ")
+          + "posts.is_active = 1 && posts.moderation_status = 'new' && users.id = :id ") // мои будущие посты также отражаются в pending = ожидают модеации
   Page<Post> findPendingPostsById(@Param("id") int id, Pageable pageable);
 
   @Query(nativeQuery = true, value =
