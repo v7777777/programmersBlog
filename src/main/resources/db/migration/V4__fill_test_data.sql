@@ -1,9 +1,9 @@
 INSERT INTO `users` (id, email, is_moderator , name, password, reg_time)
 VALUES
-(1, "u1@mail.ru", 0, "Маша С", "11111", '2021-01-20 19:04:18'),
-(2, "u2@mail.ru", 0, "Илья П", "11111", '2021-02-21 18:04:18'),
-(3, "u3@mail.ru", 0, "Дима С", "11111", '2021-03-22 11:04:18'),
-(4, "u4@mail.ru", 0, "Соня У", "11111", '2021-04-2 9:04:18'),
+(1, "vittaminka89@mail.ru", 1, "Маша С", "$2y$12$EQF24xrou2NNWHaXSr8bie0mHoqKraeTobxjMaxN/scEStrAK44.u", '2021-01-20 19:04:18'),
+(2, "u2@mail.ru", 0, "Илья П", "$2y$12$EQF24xrou2NNWHaXSr8bie0mHoqKraeTobxjMaxN/scEStrAK44.u", '2021-02-21 18:04:18'),
+(3, "u3@mail.ru", 0, "Дима С", "$2y$12$EQF24xrou2NNWHaXSr8bie0mHoqKraeTobxjMaxN/scEStrAK44.u", '2021-03-22 11:04:18'),
+(4, "u4@mail.ru", 0, "Соня У", "$2y$12$EQF24xrou2NNWHaXSr8bie0mHoqKraeTobxjMaxN/scEStrAK44.u", '2021-04-2 9:04:18'),
 (5, "u5@mail.ru", 0, "Алина Ч", "11111", '2021-04-3 8:04:18');
 
 INSERT INTO `posts` (id, is_active, moderation_status , text, time, title, view_count, user_id)

@@ -321,9 +321,8 @@ public class PostService {
   public ResultResponse addPost(NewPostRequest newPostRequest) {
 
     ResultResponse newPostResponse = new ResultResponse();
-    Map<String, String> errors = new HashMap<>();
 
-    checkNewPostForErrors(newPostRequest, errors);
+    Map<String, String> errors =  checkNewPostForErrors(newPostRequest);
 
     if (!errors.isEmpty()) {
       newPostResponse.setErrors(errors);
@@ -372,16 +371,15 @@ public class PostService {
   public ResultResponse editPost(int id, NewPostRequest editedPostRequest) {
 
     ResultResponse editedPostResponse = new ResultResponse();
-    Map<String, String> errors = new HashMap<>();
     Post postToEdit;
 
     Optional<Post> postOptional = postsRepository.findAnyPostById(id);
 
+    Map<String, String> errors =  checkNewPostForErrors(editedPostRequest);
+
     if (postOptional.isEmpty()) {
       errors.put("not found", "post doesn't exist");
     }
-
-    checkNewPostForErrors(editedPostRequest, errors);
 
     if (!errors.isEmpty()) {
       editedPostResponse.setErrors(errors);
@@ -472,8 +470,9 @@ public class PostService {
     return newCommentResponse;
   }
 
-  private Map<String, String> checkNewPostForErrors(NewPostRequest newPostRequest,
-      Map<String, String> errors) {
+  private Map<String, String> checkNewPostForErrors(NewPostRequest newPostRequest) {
+
+    Map<String, String> errors =  new HashMap<>();
 
     if (newPostRequest.getTitle().isEmpty()) {
       errors.put("title", "title is empty");
@@ -489,9 +488,6 @@ public class PostService {
     }
     if (!newPostRequest.getText().isEmpty() && newPostRequest.getText().length() < 50) {
       errors.put("text", "text is too short");
-    }
-    if (!newPostRequest.getText().isEmpty() && newPostRequest.getText().length() > 16383) {
-      errors.put("text", "text is too long");
     }
 
     return errors;

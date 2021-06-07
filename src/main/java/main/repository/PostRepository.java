@@ -28,7 +28,7 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
   int countAllActivePosts();
 
   @Query(nativeQuery = true, value =
-      "select count(*) from posts where is_active = 1 && moderation_status = 'new'") // для модератора видны будущие посты
+      "select count(*) from posts where is_active = 1 && moderation_status = 'new'")
   int countNewPosts();
 
   @Query(nativeQuery = true, value =
@@ -122,7 +122,7 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
     + "&& users.id = :id  order by posts.time desc"
       , countQuery =
       "select count(posts.id) from posts join users on users.id = posts.user_id where "
-          + "posts.is_active = 1 && posts.moderation_status = 'accepted' && users.id = :id ") // для автора будущие посты отражаются в опубликованных для всех остальных их нет в ленте
+          + "posts.is_active = 1 && posts.moderation_status = 'accepted' && users.id = :id ")
   Page<Post> findPublishedPostsById(@Param("id") int id, Pageable pageable);
 
   @Query(nativeQuery = true, value =
@@ -136,39 +136,39 @@ public interface PostRepository extends CrudRepository<Post, Integer> {
           + "&& users.id = :id  order by posts.time desc"
       , countQuery =
       "select count(posts.id) from posts join users on users.id = posts.user_id where "
-          + "posts.is_active = 1 && posts.moderation_status = 'new' && users.id = :id ") // мои будущие посты также отражаются в pending = ожидают модеации
+          + "posts.is_active = 1 && posts.moderation_status = 'new' && users.id = :id ")
   Page<Post> findPendingPostsById(@Param("id") int id, Pageable pageable);
 
   @Query(nativeQuery = true, value =
       "select * from posts where posts.is_active = 1 && posts.moderation_status = 'new' "
-          + "&& posts.time <= NOW() order by posts.time desc"
+          + "order by posts.time desc"
       , countQuery =
       "select count(*) from posts where "
-          + "posts.is_active = 1 && posts.moderation_status = 'new' && posts.time <= NOW()")
+          + "posts.is_active = 1 && posts.moderation_status = 'new'")
   Page<Post> getAllPendingPosts(Pageable pageable);
 
   @Query(nativeQuery = true, value =
       "select posts.* from posts join users on users.id = posts.user_id where posts.is_active = 1 && posts.moderation_status = 'DECLINED' "
-          + "&& posts.time <= NOW() && users.id = :id  order by posts.time desc"
+          + "&& users.id = :id  order by posts.time desc"
       , countQuery =
       "select count(posts.id) from posts join users on users.id = posts.user_id where "
-          + "posts.is_active = 1 && posts.moderation_status = 'DECLINED' && posts.time <= NOW() && users.id = :id ")
+          + "posts.is_active = 1 && posts.moderation_status = 'DECLINED' && users.id = :id ")
   Page<Post> findDeclinedPostsById(@Param("id") int id, Pageable pageable);
 
   @Query(nativeQuery = true, value =
       "select * from posts where is_active = 1 && moderation_status = 'DECLINED' "
-          + "&& time <= NOW() && moderator_id = :moderatorId order by time desc"
+          + "&& moderator_id = :moderatorId order by time desc"
       , countQuery =
       "select count(*) from posts where is_active = 1 && moderation_status = 'DECLINED' "
-          + "&& time <= NOW() && moderator_id = :moderatorId")
+          + "&& moderator_id = :moderatorId")
   Page<Post> getAllDeclinedByMePosts(@Param("moderatorId") int moderatorId, Pageable pageable);
 
   @Query(nativeQuery = true, value =
       "select * from posts where is_active = 1 && moderation_status = 'ACCEPTED' "
-          + "&& time <= NOW() && moderator_id = :moderatorId order by time desc"
+          + " && moderator_id = :moderatorId order by time desc"
       , countQuery =
       "select count(*) from posts where is_active = 1 && moderation_status = 'ACCEPTED' "
-          + "&& time <= NOW() && moderator_id = :moderatorId")
+          + " && moderator_id = :moderatorId")
   Page<Post> getAllAcceptedByMePosts(@Param("moderatorId") int moderatorId, Pageable pageable);
 
 

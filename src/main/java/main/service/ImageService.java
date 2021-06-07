@@ -35,8 +35,6 @@ public class ImageService {
       return response;
     }
 
-
-
     String originalFilename = image.getOriginalFilename();
     String storeName = UUID.randomUUID().toString() + "_" + originalFilename;
 
