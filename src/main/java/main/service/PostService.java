@@ -434,6 +434,13 @@ public class PostService {
       parentCommentOptional = Optional.of(parentComment);
     }
 
+    if (newCommentRequest.getText().isEmpty()) {
+      errors.put("text", "текст комментария");
+      newCommentResponse.setErrors(errors);
+      newCommentResponse.setResult(false);
+      return newCommentResponse;
+    }
+
     PostComment commentToAdd = new PostComment();
     commentToAdd.setPost(commentedPost);
     if (!parentCommentOptional.isEmpty()) {
