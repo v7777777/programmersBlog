@@ -2,13 +2,13 @@ package main.controller;
 
 import java.io.IOException;
 import lombok.RequiredArgsConstructor;
-import main.data.request.EditMyProfileFormWrapper;
-import main.data.request.EditMyProfileRequest;
-import main.data.request.SettingsRequest;
-import main.data.response.InitResponse;
-import main.data.response.ResultResponse;
-import main.data.response.SettingsResponse;
-import main.data.response.StatisticsResponse;
+import main.model.dto.request.EditMyProfileFormWrapper;
+import main.model.dto.request.EditMyProfileRequest;
+import main.model.dto.request.SettingsRequest;
+import main.model.dto.response.InitResponse;
+import main.model.dto.response.ResultResponse;
+import main.model.dto.response.SettingsResponse;
+import main.model.dto.response.StatisticsResponse;
 import main.service.ImageService;
 import main.service.SettingService;
 import main.service.StatisticsService;
@@ -29,7 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/")
+@RequestMapping("/api")
 public class ApiGeneralController {
 
   private final InitResponse initResponse;
@@ -45,14 +45,14 @@ public class ApiGeneralController {
 
   }
 
-  @GetMapping("settings")
+  @GetMapping("/settings")
   public ResponseEntity<SettingsResponse> settings() {
 
     return ResponseEntity.ok(settingService.getSettings());
 
   }
 
-  @RequestMapping(value = "profile/my", method = RequestMethod.POST, consumes = {
+  @RequestMapping(value = "/profile/my", method = RequestMethod.POST, consumes = {
       MediaType.MULTIPART_FORM_DATA_VALUE})
   @PreAuthorize("hasAuthority('user:write')")
   public ResponseEntity<ResultResponse> editMyProfile(
@@ -62,7 +62,7 @@ public class ApiGeneralController {
     return ResponseEntity.ok(userService.editMyProfile(form));
   }
 
-  @RequestMapping(value = "profile/my", method = RequestMethod.POST, consumes = {
+  @RequestMapping(value = "/profile/my", method = RequestMethod.POST, consumes = {
       MediaType.APPLICATION_JSON_VALUE})
   @PreAuthorize("hasAuthority('user:write')")
   public ResponseEntity<ResultResponse> editMyProfile(
@@ -71,7 +71,7 @@ public class ApiGeneralController {
     return ResponseEntity.ok(userService.editMyProfile(request));
   }
 
-  @PostMapping("image")
+  @PostMapping("/image")
   @PreAuthorize("hasAuthority('user:write')")
   public ResponseEntity<Object> image(@RequestParam MultipartFile image)
       throws IOException {
@@ -86,14 +86,14 @@ public class ApiGeneralController {
 
   }
 
-  @GetMapping("statistics/all")
+  @GetMapping("/statistics/all")
   public ResponseEntity<StatisticsResponse> getAllStatistics() {
 
     return ResponseEntity.ok(statisticsService.getAllStatistics());
 
   }
 
-  @GetMapping("statistics/my")
+  @GetMapping("/statistics/my")
   @PreAuthorize("hasAuthority('user:write')")
   public ResponseEntity<StatisticsResponse> getMyStatistics() {
 
@@ -101,7 +101,7 @@ public class ApiGeneralController {
 
   }
 
-  @PutMapping("settings")
+  @PutMapping("/settings")
   @PreAuthorize("hasAuthority('user:moderate')") // при смене поля в базе нужно сделать logout
   public ResponseEntity<ResultResponse> changeSettings(@RequestBody SettingsRequest request) {
     return ResponseEntity.ok(settingService.changeSettings(request));

@@ -3,13 +3,13 @@ package main.controller;
 import java.security.Principal;
 import javax.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
-import main.data.request.ChangePasswordRequest;
-import main.data.request.LoginRequest;
-import main.data.request.RegistrationRequest;
-import main.data.request.RestorePasswordRequest;
-import main.data.response.CaptchaResponse;
-import main.data.response.LoginResponse;
-import main.data.response.ResultResponse;
+import main.model.dto.request.ChangePasswordRequest;
+import main.model.dto.request.LoginRequest;
+import main.model.dto.request.RegistrationRequest;
+import main.model.dto.request.RestorePasswordRequest;
+import main.model.dto.response.CaptchaResponse;
+import main.model.dto.response.LoginResponse;
+import main.model.dto.response.ResultResponse;
 import main.service.AuthService;
 import main.service.PasswordService;
 import org.springframework.http.ResponseEntity;
@@ -22,21 +22,21 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/auth/")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class ApiAuthController {
 
   private final AuthService authService;
   private final PasswordService passwordService;
 
-  @PostMapping("login")
+  @PostMapping("/login")
   public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
 
     return ResponseEntity.ok(authService.login(loginRequest));
 
   }
 
-  @GetMapping("logout")
+  @GetMapping("/logout")
   @PreAuthorize("hasAuthority('user:write')")
   public ResponseEntity<LoginResponse> logout() {
 
@@ -45,21 +45,21 @@ public class ApiAuthController {
     return ResponseEntity.ok(new LoginResponse(true));
   }
 
-  @GetMapping("check")
+  @GetMapping("/check")
   public ResponseEntity<LoginResponse> check(Principal principal) {
 
     return ResponseEntity.ok(authService.check(principal));
 
   }
 
-  @GetMapping("captcha")
+  @GetMapping("/captcha")
   public ResponseEntity<CaptchaResponse> captcha() {
 
     return ResponseEntity.ok(authService.captcha());
 
   }
 
-  @PostMapping("register")
+  @PostMapping("/register")
   public ResponseEntity<ResultResponse> register(
       @RequestBody RegistrationRequest registrationRequest) {
 
@@ -67,14 +67,14 @@ public class ApiAuthController {
 
   }
 
-  @PostMapping("restore")
+  @PostMapping("/restore")
   public ResponseEntity<ResultResponse> restorePassword(
       @RequestBody RestorePasswordRequest email) throws MessagingException {
 
     return ResponseEntity.ok(passwordService.restore(email));
   }
 
-  @PostMapping("password")
+  @PostMapping("/password")
   public ResponseEntity<ResultResponse> changePassword(
       @RequestBody ChangePasswordRequest request)  {
 

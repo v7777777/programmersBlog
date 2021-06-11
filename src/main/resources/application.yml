@@ -1,16 +1,22 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/programmersblog?serverTimezone=UTC
+    url: jdbc:${JAWSDB_URL:mysql://localhost:3306/programmersblog?serverTimezone=UTC} #CLEARDB_DATABASE_URL
     username: root
     password: 1234567
+
   jpa:
     show-sql: true
     hibernate:
       ddl-auto: validate
     properties:
-     hibernate:
+      hibernate:
         dialect: org.hibernate.dialect.MySQL5InnoDBDialect
 
+server:
+  port: ${PORT:8080}
+
+  #  ${} если в параметрах запуска есть параметр PORT - используй его или значение по умолчанию 8080.
+  # Аналогично в CLEARDB_DATABASE_URL
 
 blog:
   title: DevPub
@@ -21,11 +27,11 @@ blog:
   copyrightFrom: 2005
 
 delete:
-   expiredCaptcha: 240
+  expiredCaptcha: 240
 
 upload:
-   path: src/main/resources/static/upload
-   url: /usr_img/
+  path: src/main/resources/static/upload
+  url: /usr_img/
 
 appEmail:
   email: progbloggg@gmail.com

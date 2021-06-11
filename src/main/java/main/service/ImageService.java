@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import javax.imageio.ImageIO;
-import main.data.response.ResultResponse;
+import main.model.dto.response.ResultResponse;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -55,9 +55,11 @@ public class ImageService {
     int originalFileLastDot = (originalFilename != null) ? originalFilename.lastIndexOf(".") : -1;
     String type = (originalFilename != null) ? originalFilename.substring(originalFileLastDot + 1) : "";
 
-    resizeAndSaveImage(image, type,  storeDestination, 100, 100);
+  //  resizeAndSaveImage(image, type,  storeDestination, 100, 100);
 
-    // как фронт будет обращаться к картинке
+   image.transferTo(storeDestination);
+
+   // как фронт будет обращаться к картинке
 
     String responseUrl = uploadUrl  + folderName1 + "/" + folderName2 + "/" + folderName3 + "/" + storeName ;
 
