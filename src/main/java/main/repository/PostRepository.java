@@ -2,8 +2,8 @@ package main.repository;
 
 import java.util.List;
 import java.util.Optional;
-import main.data.dtos.DateAmountView;
-import main.model.Post;
+import main.model.dto.DateAmountView;
+import main.model.entity.Post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;

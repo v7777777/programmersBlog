@@ -4,9 +4,9 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
-import main.data.response.TagResponse;
-import main.data.response.listResponses.ListTagResponse;
-import main.model.Tag;
+import main.model.dto.response.TagResponse;
+import main.model.dto.response.listResponses.ListTagResponse;
+import main.model.entity.Tag;
 import main.repository.PostRepository;
 import main.repository.TagRepository;
 import org.springframework.stereotype.Service;
@@ -43,7 +43,8 @@ public class TagService {
       Tag currentTag = tagsFound.get(i);
       tagResponse.setName(currentTag.getName());
       double postsCountForCurrentTag = currentTag.getPosts().size();
-      double notNormilizedWeight = roundDouble(postsCountForCurrentTag / totalPosts);  // не нормализованный вес
+      double notNormilizedWeight = roundDouble(roundDouble(postsCountForCurrentTag / totalPosts)*0.75);
+   //   double notNormilizedWeight = roundDouble(postsCountForCurrentTag / totalPosts); // не нормализованный вес
       tagResponse.setWeight(notNormilizedWeight);
       tags.add(tagResponse);
 
@@ -54,7 +55,9 @@ public class TagService {
 
     double k = roundDouble (1.0 / roundDouble(maxPostsAmountOfOneTag / totalPosts)); // найти коэффициент k
 
-    tags.forEach(tag -> tag.setWeight(tag.getWeight() * k));  // нормировать вес в tags
+
+
+    tags.forEach(tag -> tag.setWeight(roundDouble(tag.getWeight() * k)));  // нормировать вес в tags
 
     return listTagResponse;
 

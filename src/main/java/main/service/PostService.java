@@ -8,22 +8,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import main.data.dtos.DateAmountView;
-import main.data.request.NewCommentRequest;
-import main.data.request.NewPostRequest;
-import main.data.request.RateRequest;
-import main.data.response.CalendarResponse;
-import main.data.response.DetailedPostResponse;
-import main.data.response.NewCommentResponse;
-import main.data.response.PostResponse;
-import main.data.response.ResultResponse;
-import main.data.response.listResponses.ListPostResponse;
-import main.model.GlobalSetting;
-import main.model.Post;
-import main.model.PostComment;
-import main.model.PostVote;
-import main.model.Tag;
-import main.model.User;
+import main.model.dto.DateAmountView;
+import main.model.dto.request.NewCommentRequest;
+import main.model.dto.request.NewPostRequest;
+import main.model.dto.request.RateRequest;
+import main.model.dto.response.CalendarResponse;
+import main.model.dto.response.DetailedPostResponse;
+import main.model.dto.response.NewCommentResponse;
+import main.model.dto.response.PostResponse;
+import main.model.dto.response.ResultResponse;
+import main.model.dto.response.listResponses.ListPostResponse;
+import main.model.entity.GlobalSetting;
+import main.model.entity.Post;
+import main.model.entity.PostComment;
+import main.model.entity.PostVote;
+import main.model.entity.Tag;
+import main.model.entity.User;
 import main.model.enums.ModerationStatusCode;
 import main.model.enums.SettingValue;
 import main.repository.GlobalSettingRepository;
@@ -330,19 +330,7 @@ public class PostService {
       return newPostResponse;
     }
 
-    // newPostRequest.getTimestamp()  всегда приходит таймстемп = Mon Jan 19 1970  !!!!!
-
-    Instant time = Instant.ofEpochSecond(newPostRequest.getTimestamp());
-
-    if (time.isBefore(Instant.now())) {
-      time = Instant.now();
-    }
-
-    Post newPost = new Post();
-    newPost.setActive(newPostRequest.isActive()); // неактивные тоже ModerationStatusCode.NEW (или принят) только не показываются модератору
-    newPost.setTime(time);
-    newPost.setText(newPostRequest.getText());
-    newPost.setTitle(newPostRequest.getTitle());
+    Post newPost = Post.editFromRequest(newPostRequest, new Post());
 
     GlobalSetting postPremoderation = globalSettingRepository.findByCode("POST_PREMODERATION");
 
@@ -395,10 +383,8 @@ public class PostService {
 
     postToEdit = postOptional.get();
 
-    postToEdit.setActive(editedPostRequest.isActive());
-    postToEdit.setTitle(editedPostRequest.getTitle());
-    postToEdit.setTime(time);
-    postToEdit.setText(editedPostRequest.getText());
+    Post.editFromRequest(editedPostRequest, postToEdit);
+
     List<Tag> tags = getTagsListFromRequest(editedPostRequest.getTags());
     postToEdit.setTags(tags);
 
@@ -446,13 +432,6 @@ public class PostService {
               () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "comment not found"));
 
       parentCommentOptional = Optional.of(parentComment);
-    }
-
-    if (newCommentRequest.getText().isEmpty() || newCommentRequest.getText().length() > 255) {
-      errors.put("text", "текст комментария");
-      newCommentResponse.setErrors(errors);
-      newCommentResponse.setResult(false);
-      return newCommentResponse;
     }
 
     PostComment commentToAdd = new PostComment();

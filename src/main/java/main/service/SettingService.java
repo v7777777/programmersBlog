@@ -2,10 +2,10 @@ package main.service;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import main.data.request.SettingsRequest;
-import main.data.response.ResultResponse;
-import main.data.response.SettingsResponse;
-import main.model.GlobalSetting;
+import main.model.dto.request.SettingsRequest;
+import main.model.dto.response.ResultResponse;
+import main.model.dto.response.SettingsResponse;
+import main.model.entity.GlobalSetting;
 import main.model.enums.SettingValue;
 import main.repository.GlobalSettingRepository;
 import org.springframework.stereotype.Service;

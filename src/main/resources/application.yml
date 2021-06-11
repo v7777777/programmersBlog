@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:${CLEARDB_DATABASE_URL:mysql://localhost:3306/programmersblog?serverTimezone=UTC}
+    url: jdbc:${JAWSDB_URL:mysql://localhost:3306/programmersblog?serverTimezone=UTC} #CLEARDB_DATABASE_URL
     username: root
     password: 1234567
 
