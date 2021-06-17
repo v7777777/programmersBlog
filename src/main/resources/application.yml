@@ -32,7 +32,14 @@ delete:
 upload:
   path: src/main/resources/static/upload
   url: /usr_img/
+  image:
+    newsLineWidth: 752
+    profileWidth: 36
+
+
 
 appEmail:
   email: progbloggg@gmail.com
   password: lrzlicambdmlockl
+
+

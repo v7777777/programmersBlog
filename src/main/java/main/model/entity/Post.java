@@ -28,6 +28,22 @@ import main.model.enums.ModerationStatusCode;
 
 public class Post {
 
+  public void merge (NewPostRequest newPostRequest){
+
+    Instant time = Instant.ofEpochSecond(newPostRequest.getTimestamp());
+
+    if (time.isBefore(Instant.now())) {
+      time = Instant.now();
+    }
+
+    this.setActive(newPostRequest.isActive()); // неактивные тоже ModerationStatusCode.NEW (или принят) только не показываются модератору
+    this.setTime(time);
+    this.setText(newPostRequest.getText());
+    this.setTitle(newPostRequest.getTitle());
+
+  }
+
+
   @Column(name = "id")
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -80,23 +96,6 @@ public class Post {
 
    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
    private List<Tag2post> tag2posts;
-
-  public static Post editFromRequest (NewPostRequest newPostRequest, Post postToEdit){
-
-    Instant time = Instant.ofEpochSecond(newPostRequest.getTimestamp());
-
-    if (time.isBefore(Instant.now())) {
-      time = Instant.now();
-    }
-
-    postToEdit.setActive(newPostRequest.isActive()); // неактивные тоже ModerationStatusCode.NEW (или принят) только не показываются модератору
-    postToEdit.setTime(time);
-    postToEdit.setText(newPostRequest.getText());
-    postToEdit.setTitle(newPostRequest.getTitle());
-
-    return postToEdit;
-
-  }
 
 
 }

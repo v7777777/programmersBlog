@@ -37,7 +37,6 @@ public class UserService {
   @Value("${upload.url}")
   public String uploadUrl;
 
-
   public ResultResponse editMyProfile(
       EditMyProfileFormWrapper form) throws IOException {
 
@@ -72,7 +71,7 @@ public class UserService {
     int originalFileLastDot = (originalFilename != null) ? originalFilename.lastIndexOf(".") : -1;
     String type = (originalFilename != null) ? originalFilename.substring(originalFileLastDot + 1) : "";
 
-    imageService.resizeAndSaveImage(photo, type, destination, 36, 36);
+    imageService.resizeAndSaveImage(photo, type, destination, "profile"); // 36*36
 
     currentUser.setPhoto(uploadUrl
         + storeName);  // url запрос на эндпоинт /img/ ищет в папке upload --> ресупс хендлер  / на сервере в корне upload
