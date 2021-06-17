@@ -18,6 +18,12 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class ImageService {
 
+  @Value("${upload.image.newsLineWidth}")
+  public int imageNewsLineWidth;
+
+  @Value("${upload.image.profileWidth}")
+  public int imageProfileWidth;
+
   @Value("${upload.path}")
   public String uploadPath;
 
@@ -55,9 +61,9 @@ public class ImageService {
     int originalFileLastDot = (originalFilename != null) ? originalFilename.lastIndexOf(".") : -1;
     String type = (originalFilename != null) ? originalFilename.substring(originalFileLastDot + 1) : "";
 
-  //  resizeAndSaveImage(image, type,  storeDestination, 100, 100);
+    resizeAndSaveImage(image, type,  storeDestination, "news" );
 
-   image.transferTo(storeDestination);
+ //  image.transferTo(storeDestination); // save without resize / with original size
 
    // как фронт будет обращаться к картинке
 
@@ -66,18 +72,75 @@ public class ImageService {
     return responseUrl;
   }
 
-  protected void resizeAndSaveImage(MultipartFile image, String type, File storeDestination, int width, int height)
+  protected void resizeAndSaveImage(MultipartFile image, String fileType, File storeDestination, String imageType)
       throws IOException {
 
     byte[] photoBytes = image.getBytes();
 
     BufferedImage bufferedImageOriginal = ImageIO.read(new ByteArrayInputStream(photoBytes));
-    BufferedImage bufferedImageResized = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+    int widthOriginal = bufferedImageOriginal.getWidth();
+    int heightOriginal = bufferedImageOriginal.getHeight();
+    int widthTarget = 0;
+    int heightTarget = 0;
+
+    // картинка новостной ленты
+
+    if(imageType.equals("news")){
+
+      if(widthOriginal > imageNewsLineWidth) {
+
+         widthTarget = imageNewsLineWidth;
+
+         double scale = (double) imageNewsLineWidth / widthOriginal;
+
+         heightTarget = (int) (heightOriginal * scale);
+
+      }
+
+      else {
+
+        widthTarget = widthOriginal;
+        heightTarget = heightOriginal;
+
+      }
+
+    }
+
+    // картинка профиля
+    // если д и ш меньше, то картинка остается как есть,  в остальных случаях меняется
+
+    else if(imageType.equals("profile")) {
+
+      if (widthOriginal <  imageProfileWidth && heightOriginal < imageProfileWidth ) {
+
+        widthTarget = widthOriginal;
+        heightTarget = heightOriginal;
+      }
+
+      else {
+        widthTarget = imageProfileWidth;
+        heightTarget = imageProfileWidth;
+
+      }
+
+    }
+
+    // размеры нужно изменить
+
+    if(widthOriginal != widthTarget) {
+
+    BufferedImage bufferedImageResized = new BufferedImage(widthTarget, heightTarget, BufferedImage.TYPE_INT_RGB);
     Graphics2D graphics2D = bufferedImageResized.createGraphics();
-    graphics2D.drawImage(bufferedImageOriginal, 0, 0, width, height, null);
+    graphics2D.drawImage(bufferedImageOriginal, 0, 0, widthTarget, heightTarget, null);
     graphics2D.dispose();
 
-    ImageIO.write(bufferedImageResized, type, storeDestination);
+    ImageIO.write(bufferedImageResized, fileType, storeDestination);
+    }
+
+    // первоначальные размеры меньше - изменять не нужно, сохранить оригинальное изображение
+
+    else { ImageIO.write(bufferedImageOriginal, fileType, storeDestination);}
 
   }
 

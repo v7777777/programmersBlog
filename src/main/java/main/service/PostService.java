@@ -330,7 +330,9 @@ public class PostService {
       return newPostResponse;
     }
 
-    Post newPost = Post.editFromRequest(newPostRequest, new Post());
+    Post newPost = new Post();
+
+    newPost.merge(newPostRequest);
 
     GlobalSetting postPremoderation = globalSettingRepository.findByCode("POST_PREMODERATION");
 
@@ -383,7 +385,7 @@ public class PostService {
 
     postToEdit = postOptional.get();
 
-    Post.editFromRequest(editedPostRequest, postToEdit);
+    postToEdit.merge(editedPostRequest);
 
     List<Tag> tags = getTagsListFromRequest(editedPostRequest.getTags());
     postToEdit.setTags(tags);
