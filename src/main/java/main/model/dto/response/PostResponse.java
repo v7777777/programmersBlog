@@ -55,11 +55,11 @@ public class PostResponse {
       shortenString = shortenString.substring(0, 150);
       int lastSpaceIndex = shortenString.lastIndexOf(" ");
       shortenString = shortenString.substring(0, lastSpaceIndex) + " ...";
-      shortenString = shortenString.replaceAll("&ensp;", "");
-      shortenString = shortenString.replaceAll("&emsp;", "");
-      shortenString = shortenString.replaceAll("&nbsp;", "");
-
     }
+
+    shortenString = shortenString.replaceAll("&ensp;", " ");
+    shortenString = shortenString.replaceAll("&emsp;", " ");
+    shortenString = shortenString.replaceAll("&nbsp;", " ");
     return shortenString;
   }
 }

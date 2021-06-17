@@ -67,7 +67,7 @@ public class UserService {
 
     String originalFilename = photo.getOriginalFilename();
     String storeName = UUID.randomUUID().toString() + "_" + originalFilename;
-    File destination = new File(uploadPath + "\\" + storeName);
+    File destination = new File(uploadPath + "/" + storeName);
     int originalFileLastDot = (originalFilename != null) ? originalFilename.lastIndexOf(".") : -1;
     String type = (originalFilename != null) ? originalFilename.substring(originalFileLastDot + 1) : "";
 

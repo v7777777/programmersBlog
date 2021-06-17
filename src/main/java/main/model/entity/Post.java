@@ -18,17 +18,15 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import main.model.dto.request.NewPostRequest;
 import main.model.enums.ModerationStatusCode;
 
 @Entity
 @Table(name = "posts")
 @Data
-
 public class Post {
 
-  public void merge (NewPostRequest newPostRequest){
+  public void merge(NewPostRequest newPostRequest) {
 
     Instant time = Instant.ofEpochSecond(newPostRequest.getTimestamp());
 
@@ -36,7 +34,8 @@ public class Post {
       time = Instant.now();
     }
 
-    this.setActive(newPostRequest.isActive()); // неактивные тоже ModerationStatusCode.NEW (или принят) только не показываются модератору
+    this.setActive(newPostRequest
+        .isActive()); // неактивные тоже ModerationStatusCode.NEW (или принят) только не показываются модератору
     this.setTime(time);
     this.setText(newPostRequest.getText());
     this.setTitle(newPostRequest.getTitle());
@@ -70,7 +69,7 @@ public class Post {
   @Column(name = "title", nullable = false)
   private String title;
 
-  @Column(name = "text", 	nullable = false, columnDefinition = "LONGTEXT")
+  @Column(name = "text", nullable = false, columnDefinition = "LONGTEXT")
   private String text;
 
   @Column(name = "view_count", nullable = false)
@@ -94,8 +93,8 @@ public class Post {
   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<PostComment> postComments;
 
-   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-   private List<Tag2post> tag2posts;
+  @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<Tag2post> tag2posts;
 
 
 }
