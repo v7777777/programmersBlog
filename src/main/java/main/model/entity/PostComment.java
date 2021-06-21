@@ -37,7 +37,7 @@ public class PostComment {
   @Column(name = "time", nullable = false)
   private Instant time;
 
-  @Column(name = "text", nullable = false)
+  @Column(name = "text", nullable = false, columnDefinition = "LONGTEXT")
   private String text;
 
 }

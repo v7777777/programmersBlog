@@ -26,7 +26,7 @@ primary key (id)
 
 create table post_comments (
 id integer not null auto_increment,
-text varchar(255) not null,
+text LONGTEXT not null,
 time datetime not null,
 parent_id integer,
 post_id integer not null,
