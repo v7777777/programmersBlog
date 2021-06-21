@@ -448,7 +448,10 @@ public class PostService {
     if (!parentCommentOptional.isEmpty()) {
       commentToAdd.setPostComment(parentCommentOptional.get());
     }
+
     commentToAdd.setText(newCommentRequest.getText());
+
+
     commentToAdd.setTime(Instant.now());
     User author = userService.getUserFromAuthentication();
     commentToAdd.setUser(author);
